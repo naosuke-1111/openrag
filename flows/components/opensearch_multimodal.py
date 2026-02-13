@@ -462,7 +462,7 @@ class OpenSearchVectorStoreComponentMultimodalMultiEmbedding(LCVectorStoreCompon
         engine: str = "jvector",
         space_type: str = "l2",
         ef_search: int = 512,
-        ef_construction: int = 100,
+        ef_construction: int = 512,
         m: int = 16,
         vector_field: str = "vector_field",
     ) -> dict[str, Any]:

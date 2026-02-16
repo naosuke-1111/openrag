@@ -172,26 +172,6 @@ class ConfigScreen(Screen):
             yield Horizontal(*buttons, classes="button-row")
         yield Footer()
 
-    def _create_header_text(self) -> Text:
-        """Create the configuration header text."""
-        header_text = Text()
-
-        if self.mode == "no_auth":
-            header_text.append("Quick Setup - No Authentication\n", style="bold green")
-            header_text.append(
-                "Configure OpenRAG for local document processing only.\n\n", style="dim"
-            )
-        else:
-            header_text.append("Full Setup - OAuth Integration\n", style="bold cyan")
-            header_text.append(
-                "Configure OpenRAG with cloud service integrations.\n\n", style="dim"
-            )
-
-        header_text.append("Required fields are marked with *\n", style="yellow")
-        header_text.append("Use Ctrl+G to generate admin passwords\n", style="dim")
-
-        return header_text
-
     def _create_all_fields(self) -> ComposeResult:
         """Create all configuration fields in a single scrollable layout."""
 
@@ -661,60 +641,6 @@ class ConfigScreen(Screen):
             yield input_widget
             self.inputs["langflow_public_url"] = input_widget
             yield Static(" ")
-
-    def _create_field(
-        self,
-        field_name: str,
-        display_name: str,
-        placeholder: str,
-        can_generate: bool,
-        required: bool = False,
-    ) -> ComposeResult:
-        """Create a single form field."""
-        # Create label
-        label_text = f"{display_name}"
-        if required:
-            label_text += " *"
-
-        yield Label(label_text)
-
-        # Get current value
-        current_value = getattr(self.env_manager.config, field_name, "")
-
-        # Create input with appropriate validator
-        if field_name == "openai_api_key":
-            input_widget = Input(
-                placeholder=placeholder,
-                value=current_value,
-                password=True,
-                validators=[OpenAIKeyValidator()],
-                id=f"input-{field_name}",
-            )
-        elif field_name == "openrag_documents_paths":
-            input_widget = Input(
-                placeholder=placeholder,
-                value=current_value,
-                validators=[DocumentsPathValidator()],
-                validate_on=["submitted"],
-                id=f"input-{field_name}",
-            )
-        elif "password" in field_name or "secret" in field_name:
-            input_widget = Input(
-                placeholder=placeholder,
-                value=current_value,
-                password=True,
-                id=f"input-{field_name}",
-            )
-        else:
-            input_widget = Input(
-                placeholder=placeholder, value=current_value, id=f"input-{field_name}"
-            )
-
-        yield input_widget
-        self.inputs[field_name] = input_widget
-
-        # Add spacing
-        yield Static(" ")
 
     def on_mount(self) -> None:
         """Initialize the screen when mounted."""

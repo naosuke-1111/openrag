@@ -19,11 +19,8 @@ def _make_response(status_code: int) -> MagicMock:
 
 @pytest.fixture
 def mock_langflow_client():
-    """Provide a mocked langflow HTTP client and patch it into settings."""
-    client = AsyncMock()
-    with patch("utils.langflow_utils.clients") as mock_clients:
-        mock_clients.langflow_http_client = client
-        yield client
+    """Provide a mocked langflow HTTP client."""
+    return AsyncMock()
 
 
 @pytest.fixture(autouse=True)
@@ -41,7 +38,7 @@ async def test_ready_on_first_attempt(mock_langflow_client, no_sleep):
     """Returns immediately when health check responds 200 on the first try."""
     mock_langflow_client.get.return_value = _make_response(200)
 
-    await wait_for_langflow(max_retries=3)
+    await wait_for_langflow(langflow_http_client=mock_langflow_client, max_retries=3)
 
     mock_langflow_client.get.assert_called_once_with("/health", timeout=5.0)
     no_sleep.assert_not_called()
@@ -58,7 +55,7 @@ async def test_ready_after_non_200_then_200(mock_langflow_client, no_sleep):
         _make_response(200),
     ]
 
-    await wait_for_langflow(max_retries=3)
+    await wait_for_langflow(langflow_http_client=mock_langflow_client, max_retries=3)
 
     assert mock_langflow_client.get.call_count == 2
     assert no_sleep.call_count == 1
@@ -72,7 +69,7 @@ async def test_ready_after_exception_then_200(mock_langflow_client, no_sleep):
         _make_response(200),
     ]
 
-    await wait_for_langflow(max_retries=3)
+    await wait_for_langflow(langflow_http_client=mock_langflow_client, max_retries=3)
 
     assert mock_langflow_client.get.call_count == 2
     assert no_sleep.call_count == 1
@@ -88,7 +85,7 @@ async def test_ready_after_mixed_failures(mock_langflow_client, no_sleep):
         _make_response(200),
     ]
 
-    await wait_for_langflow(max_retries=5)
+    await wait_for_langflow(langflow_http_client=mock_langflow_client, max_retries=5)
 
     assert mock_langflow_client.get.call_count == 4
     assert no_sleep.call_count == 3
@@ -103,7 +100,7 @@ async def test_raises_after_all_retries_exhausted_non_200(mock_langflow_client):
     mock_langflow_client.get.return_value = _make_response(503)
 
     with pytest.raises(LangflowNotReadyError):
-        await wait_for_langflow(max_retries=3)
+        await wait_for_langflow(langflow_http_client=mock_langflow_client, max_retries=3)
 
     assert mock_langflow_client.get.call_count == 3
 
@@ -114,7 +111,7 @@ async def test_raises_after_all_retries_exhausted_exception(mock_langflow_client
     mock_langflow_client.get.side_effect = ConnectionError("refused")
 
     with pytest.raises(LangflowNotReadyError):
-        await wait_for_langflow(max_retries=2)
+        await wait_for_langflow(langflow_http_client=mock_langflow_client, max_retries=2)
 
     assert mock_langflow_client.get.call_count == 2
 
@@ -125,7 +122,7 @@ async def test_single_retry_no_sleep_before_raise(mock_langflow_client, no_sleep
     mock_langflow_client.get.return_value = _make_response(500)
 
     with pytest.raises(LangflowNotReadyError):
-        await wait_for_langflow(max_retries=1)
+        await wait_for_langflow(langflow_http_client=mock_langflow_client, max_retries=1)
 
     mock_langflow_client.get.assert_called_once()
     no_sleep.assert_not_called()
@@ -142,7 +139,7 @@ async def test_sleep_delay_respects_bounds(mock_langflow_client, no_sleep):
     max_delay = 4.0
 
     with pytest.raises(LangflowNotReadyError):
-        await wait_for_langflow(max_retries=5, base_delay=base_delay, max_delay=max_delay)
+        await wait_for_langflow(langflow_http_client=mock_langflow_client, max_retries=5, base_delay=base_delay, max_delay=max_delay)
 
     # 4 sleeps for 5 retries (no sleep after the last attempt)
     assert no_sleep.call_count == 4
@@ -159,7 +156,7 @@ async def test_exponential_backoff_increases(mock_langflow_client, no_sleep):
 
     with patch("utils.langflow_utils.random.uniform", side_effect=lambda lo, hi: hi):
         with pytest.raises(LangflowNotReadyError):
-            await wait_for_langflow(max_retries=4, base_delay=1.0, max_delay=100.0)
+            await wait_for_langflow(langflow_http_client=mock_langflow_client, max_retries=4, base_delay=1.0, max_delay=100.0)
 
     # With jitter pinned to the upper bound, delays should be 1, 2, 4
     delays = [call.args[0] for call in no_sleep.call_args_list]
@@ -173,7 +170,7 @@ async def test_max_delay_cap(mock_langflow_client, no_sleep):
 
     with patch("utils.langflow_utils.random.uniform", side_effect=lambda lo, hi: hi):
         with pytest.raises(LangflowNotReadyError):
-            await wait_for_langflow(max_retries=6, base_delay=2.0, max_delay=5.0)
+            await wait_for_langflow(langflow_http_client=mock_langflow_client, max_retries=6, base_delay=2.0, max_delay=5.0)
 
     delays = [call.args[0] for call in no_sleep.call_args_list]
     # base_delay * 2^attempt: 2, 4, 5(cap), 5(cap), 5(cap)
@@ -188,7 +185,7 @@ async def test_default_parameters(mock_langflow_client, no_sleep):
     """Works correctly with default parameter values."""
     mock_langflow_client.get.return_value = _make_response(200)
 
-    await wait_for_langflow()
+    await wait_for_langflow(langflow_http_client=mock_langflow_client)
 
     mock_langflow_client.get.assert_called_once()
 
@@ -199,4 +196,4 @@ async def test_error_message_content(mock_langflow_client):
     mock_langflow_client.get.return_value = _make_response(503)
 
     with pytest.raises(LangflowNotReadyError, match="Failed to verify"):
-        await wait_for_langflow(max_retries=1)
+        await wait_for_langflow(langflow_http_client=mock_langflow_client, max_retries=1)

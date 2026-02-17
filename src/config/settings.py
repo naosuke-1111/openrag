@@ -356,9 +356,8 @@ class AppClients:
         )
 
         # Wait for Langflow to be healthy before generating API key
-        # Deferred import to avoid circular dependency (langflow_utils imports config.settings.clients)
         from utils.langflow_utils import wait_for_langflow
-        await wait_for_langflow()
+        await wait_for_langflow(langflow_http_client=self.langflow_http_client)
 
         # Generate Langflow API key now that Langflow is confirmed ready
         await get_langflow_api_key()

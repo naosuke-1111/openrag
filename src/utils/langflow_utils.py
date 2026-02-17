@@ -1,7 +1,8 @@
 import asyncio
 import random
 
-from config.settings import clients
+import httpx
+
 from utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -11,10 +12,17 @@ class LangflowNotReadyError(Exception):
     """Raised when Langflow fails to become ready within the retry limit."""
 
 
-async def wait_for_langflow(max_retries: int = 10, base_delay: float = 1.0, max_delay: float = 20.0) -> None:
+async def wait_for_langflow(
+    langflow_http_client: httpx.AsyncClient | None = None,
+    max_retries: int = 10,
+    base_delay: float = 1.0,
+    max_delay: float = 20.0,
+) -> None:
     """Wait for Langflow to be ready with exponential backoff and jitter.
 
     Args:
+        langflow_http_client: The httpx client to use for health checks. If None,
+            falls back to clients.langflow_http_client from config.settings.
         max_retries: Maximum number of retry attempts.
         base_delay: Initial delay in seconds before the first retry.
         max_delay: Upper bound in seconds for the retry delay.
@@ -22,6 +30,10 @@ async def wait_for_langflow(max_retries: int = 10, base_delay: float = 1.0, max_
     Raises:
         LangflowNotReadyError: If Langflow fails to become ready within the retry limit.
     """
+    if langflow_http_client is None:
+        from config.settings import clients
+        langflow_http_client = clients.langflow_http_client
+
     for attempt in range(max_retries):
         display_attempt: int = attempt + 1
 
@@ -32,7 +44,7 @@ async def wait_for_langflow(max_retries: int = 10, base_delay: float = 1.0, max_
         )
 
         try:
-            response = await clients.langflow_http_client.get("/health", timeout=5.0)
+            response = await langflow_http_client.get("/health", timeout=5.0)
             status_code = response.status_code
 
             if status_code == 200:

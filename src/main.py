@@ -283,6 +283,12 @@ async def init_index():
         raise e
 
 
+async def init_index_when_ready():
+    """Wait for the OpenSearch service to be ready and then initialize the OpenSearch index."""
+    await wait_for_opensearch()
+    await init_index()
+
+
 def generate_jwt_keys():
     """Generate RSA keys for JWT signing if they don't exist"""
     keys_dir = "keys"
@@ -336,19 +342,6 @@ def generate_jwt_keys():
             logger.info("RSA keys already exist, ensured correct permissions")
         except OSError as e:
             logger.warning("Failed to set permissions on existing keys", error=str(e))
-
-
-async def init_index_when_ready():
-    """Initialize OpenSearch index when it becomes available"""
-    try:
-        await init_index()
-        logger.info("OpenSearch index initialization completed successfully")
-    except Exception as e:
-        logger.error("OpenSearch index initialization failed", error=str(e))
-        await TelemetryClient.send_event(Category.OPENSEARCH_INDEX, MessageId.ORB_OS_INDEX_INIT_FAIL)
-        logger.warning(
-            "OIDC endpoints will still work, but document operations may fail until OpenSearch is ready"
-        )
 
 
 def _get_documents_dir():
@@ -579,6 +572,33 @@ async def startup_tasks(services):
 
     if DISABLE_INGEST_WITH_LANGFLOW:
         await _ensure_opensearch_index()
+
+    # Ensure that the OpenSearch index exists if onboarding was already completed
+    # - Handles the case where OpenSearch is reset (e.g., volume deleted) after onboarding
+    embedding_model = None
+    try:
+        config = get_openrag_config()
+        embedding_model = config.knowledge.embedding_model
+
+        if config.edited and embedding_model:
+            logger.info(
+                "Ensuring that the OpenSearch index exists (after onboarding)...",
+                embedding_model=embedding_model,
+            )
+
+            await init_index()
+
+            logger.info(
+                "Successfully ensured that the OpenSearch index exists (after onboarding).",
+                embedding_model=embedding_model,
+            )
+    except Exception as e:
+        logger.error(
+            "Failed to ensure that the OpenSearch index exists (after onboarding).",
+            embedding_model=embedding_model,
+            error=str(e),
+        )
+        raise
 
     # Configure alerting security
     await configure_alerting_security()

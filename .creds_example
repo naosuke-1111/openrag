@@ -1,0 +1,66 @@
+# ============================================
+# OpenRAG Speech Application - Environment Variables
+# ============================================
+
+# ============================================
+# watsonx.ai Configuration
+# ============================================
+WATSONX_API_URL=https://cpd-cpd.apps.watsonx2.lab.japan.ibm.com
+WATSONX_API_KEY=gDVTt7BeNz8lqNBb1xC1k9wyOSmlW4TdigoI4yKJ
+WATSONX_AUTH_URL=https://cpd-cpd.apps.watsonx2.lab.japan.ibm.com/icp4d-api/v1/authorize
+WATSONX_API_VERSION=2025-02-06
+WATSONX_SSL_VERIFY=false
+WATSONX_CA_BUNDLE_PATH=
+
+# watsonx.ai Project
+WATSONX_PROJECT_ID=be87baf8-e1b5-4247-a9ee-b95aa3e3fbb1
+WATSONX_USERNAME=thinklab
+WATSONX_PASSWORD=Th1nkL@b
+
+# watsonx.ai LLMs
+WATSONX_LLM_ID1=openai/gpt-oss-120b
+WATSONX_LLM_ID2=ibm/granite-4-h-small
+WATSONX_LLM_ID3=ibm/granite-embedding-107m-multilingual
+
+# ============================================
+# Watson Speech-to-Text Service
+# ============================================
+SPEECH_TO_TEXT_URL=https://cpd-cpd.apps.watsonx2.lab.japan.ibm.com/speech-to-text/cpd-speech-cr/instances/1767853052479779/api
+SPEECH_TO_TEXT_BEARER_TOKEN=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Illzc3pVek44UWRrMENvVzQ5UXU3QjhYelFnZ2g5REFkdnUyakJqdzZaUTQifQ.eyJ1aWQiOiIxMDAwMzMxMDA4IiwidXNlcm5hbWUiOiJ0aGlua2xhYiIsImVtYWlsIjoiIiwicm9sZSI6IkFkbWluIiwicGVybWlzc2lvbnMiOlsibWFuYWdlX3ZhdWx0c19hbmRfc2VjcmV0cyIsInNoYXJlX3NlY3JldHMiLCJhZGRfdmF1bHRzIiwiYWRtaW5pc3RyYXRvciIsImNhbl9wcm92aXNpb24iLCJtb25pdG9yX3BsYXRmb3JtIiwiY29uZmlndXJlX3BsYXRmb3JtIiwidmlld19wbGF0Zm9ybV9oZWFsdGgiLCJjb25maWd1cmVfYXV0aCIsIm1hbmFnZV91c2VycyIsIm1hbmFnZV9ncm91cHMiLCJtYW5hZ2Vfc2VydmljZV9pbnN0YW5jZXMiLCJtYW5hZ2VfbG9jYXRpb25zIiwibWFuYWdlX2RhdGFfcGxhbmVzIiwidmlld19sb2NhdGlvbnMiLCJ2aWV3X2RhdGFfcGxhbmVzIiwibWFuYWdlX2NhdGFsb2ciLCJhZGRfY2F0YWxvZ19hc3NldHNfdG9fcHJvamVjdHMiLCJjcmVhdGVfcHJvamVjdCIsImNyZWF0ZV9zcGFjZSJdLCJncm91cHMiOlsxMDAwMF0sInN1YiI6InRoaW5rbGFiIiwiaXNzIjoiS05PWFNTTyIsImF1ZCI6IkRTWCIsImFwaV9yZXF1ZXN0Ijp0cnVlLCJpYXQiOjE3Njg4NzI1MjF9.FWmrYYZVzCkf1XVb4ON7sO-E5kYce8f0t-wqj560t7ycr3V7JNAP36bqTCtAEyd9FdPzcouBhSejnKmv1zJKtsp7R6V4JyqeT7i3Ng0uFkdV7NcYJ6hfmkziCqiqgD3hv0yoWAx1zt21DvrAoi_oh8B3XpnVxbWwdVc8KvhYgOE2WqU_Ib-lBXEvF0NpQvdzG1kYtfX9perLFFI6QDmxFjUii_apb4qjWDwQ5nRPA1t5X7PglmSJ20-R0Fsv-FPprmWCM0-nEcqY92Jk5u5jEgZo_XbNR4Hr0alEvlJUm4TmILKNyesCilWPmoSJrgWVRCEvtZ1721eTn2ZC900KZg
+SPEECH_TO_TEXT_AUTH_TYPE=bearerToken
+
+# ============================================
+# Watson Text-to-Speech Service
+# ============================================
+TEXT_TO_SPEECH_URL=https://cpd-cpd.apps.watsonx2.lab.japan.ibm.com/text-to-speech/cpd-speech-cr/instances/1767853079622849/api
+TEXT_TO_SPEECH_BEARER_TOKEN=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Illzc3pVek44UWRrMENvVzQ5UXU3QjhYelFnZ2g5REFkdnUyakJqdzZaUTQifQ.eyJ1aWQiOiIxMDAwMzMxMDA4IiwidXNlcm5hbWUiOiJ0aGlua2xhYiIsImVtYWlsIjoiIiwicm9sZSI6IkFkbWluIiwicGVybWlzc2lvbnMiOlsibWFuYWdlX3ZhdWx0c19hbmRfc2VjcmV0cyIsInNoYXJlX3NlY3JldHMiLCJhZGRfdmF1bHRzIiwiYWRtaW5pc3RyYXRvciIsImNhbl9wcm92aXNpb24iLCJtb25pdG9yX3BsYXRmb3JtIiwiY29uZmlndXJlX3BsYXRmb3JtIiwidmlld19wbGF0Zm9ybV9oZWFsdGgiLCJjb25maWd1cmVfYXV0aCIsIm1hbmFnZV91c2VycyIsIm1hbmFnZV9ncm91cHMiLCJtYW5hZ2Vfc2VydmljZV9pbnN0YW5jZXMiLCJtYW5hZ2VfbG9jYXRpb25zIiwibWFuYWdlX2RhdGFfcGxhbmVzIiwidmlld19sb2NhdGlvbnMiLCJ2aWV3X2RhdGFfcGxhbmVzIiwibWFuYWdlX2NhdGFsb2ciLCJhZGRfY2F0YWxvZ19hc3NldHNfdG9fcHJvamVjdHMiLCJjcmVhdGVfcHJvamVjdCIsImNyZWF0ZV9zcGFjZSJdLCJncm91cHMiOlsxMDAwMF0sInN1YiI6InRoaW5rbGFiIiwiaXNzIjoiS05PWFNTTyIsImF1ZCI6IkRTWCIsImFwaV9yZXF1ZXN0Ijp0cnVlLCJpYXQiOjE3Njg4NzI2NDJ9.J5t3UUbCUJexUYf2cTzRfFtNhoXtwYAwU8EBfk6OVNMxNbO2n1_u-leRlT6IeYySXTwZ4qoWTvNkxahz58avOSyT93wMNyexWDnwSBxyOqccK0hqFTqiKFRKaA-XL9GHhJzGkoeXlk7Vatg1s88WJW6pJrbgxQoqdciN2Tvilicl4zDTWPBFOJUflrg7VbYQ3PwhLo4FiK3mP0AhkG4DdHWSBINuuOGCPZITw2oPYv_xeUtn4f7LeOWUVLNZKTmUfacchOCXhuP8YFWEl6dwAvc05K3NlwDefgN1MCSSHEuIR7FuWMfwosNTClJSioO4MNiuFQSR9dILHOinzGPfuA
+TEXT_TO_SPEECH_AUTH_TYPE=bearerToken
+
+# ============================================
+# Application Configuration
+# ============================================
+NODE_ENV=production
+LOG_LEVEL=info
+
+# Server Ports (for reference, actual ports are in docker-compose.yml)
+FRONTEND_PORT=3000
+BACKEND_PORT=8000
+SPEECH_PROXY_PORT=8097
+LANGFLOW_PORT=7860
+OPENSEARCH_PORT=9200
+DOCLING_PORT=8098
+NGINX_HTTPS_PORT=4434
+NGINX_HTTP_PORT=8099
+
+# ============================================
+# OpenSearch Configuration
+# ============================================
+OPENSEARCH_JAVA_OPTS=-Xms4g -Xmx4g
+DISABLE_SECURITY_PLUGIN=true
+
+# ============================================
+# Langflow Configuration
+# ============================================
+LANGFLOW_DATABASE_URL=sqlite:////data/langflow.db
+LANGFLOW_CONFIG_DIR=/data/config
+LANGFLOW_SAVE_DB_IN_CONFIG_DIR=true

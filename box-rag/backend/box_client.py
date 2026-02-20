@@ -10,12 +10,10 @@ Handles:
 Uses the Box Python SDK Gen v10 (box-python-sdk-gen) where possible,
 with direct HTTP calls for shared link scenarios.
 """
-import hashlib
 import logging
-import urllib.parse
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import httpx
 
@@ -252,7 +250,7 @@ class BoxClient:
                     shared_link_url,
                     shared_link_password,
                     parent_path=item.path,
-                    max_files=max_files - len(all_files),
+                    max_files=max(1, max_files - len(all_files)),
                 )
                 all_files.extend(sub_files)
                 all_folders.extend(sub_folders)

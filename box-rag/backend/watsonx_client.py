@@ -64,11 +64,14 @@ async def get_bearer_token() -> str:
 
 
 async def _get_auth_headers() -> dict:
-    """Return Authorization headers."""
-    # If API_KEY provided, use it directly (some deployments support this)
+    """Return Authorization headers.
+
+    ICP4D deployments use username/password → bearer token.
+    If WATSONX_API_KEY is provided it is used as the bearer token directly,
+    bypassing the username/password token exchange.
+    """
     if cfg.WATSONX_API_KEY:
-        token = await get_bearer_token()
-        return {"Authorization": f"Bearer {token}"}
+        return {"Authorization": f"Bearer {cfg.WATSONX_API_KEY}"}
     token = await get_bearer_token()
     return {"Authorization": f"Bearer {token}"}
 
@@ -98,7 +101,7 @@ async def embed_texts(texts: List[str]) -> List[List[float]]:
         "project_id": cfg.WATSONX_PROJECT_ID,
     }
 
-    logger.debug("Requesting embeddings", model=cfg.WATSONX_EMBED_MODEL, count=len(texts))
+    logger.debug("Requesting embeddings: model=%s, count=%d", cfg.WATSONX_EMBED_MODEL, len(texts))
 
     async with httpx.AsyncClient(verify=ssl_verify) as client:
         response = await client.post(url, headers=headers, json=payload, timeout=60.0)

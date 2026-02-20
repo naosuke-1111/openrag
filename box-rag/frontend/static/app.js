@@ -245,6 +245,8 @@ function updateSelection() {
 
 let currentJobId = null;
 let pollTimer = null;
+let pollRetries = 0;
+const POLL_MAX_RETRIES = 10;
 
 async function startIngestion() {
   if (selectedFiles.size === 0) return;
@@ -273,6 +275,7 @@ async function startIngestion() {
     });
 
     currentJobId = result.job_id;
+    pollRetries = 0;
     pollProgress(result.total);
   } catch (err) {
     showStep('step-link');
@@ -300,13 +303,24 @@ function pollProgress(total) {
       }
 
       if (job.status === 'running') {
+        pollRetries = 0;
         pollProgress(total);
       } else {
+        pollTimer = null;
         el('btn-done').classList.remove('hidden');
       }
     } catch (err) {
-      console.error('Poll error:', err);
-      pollProgress(total);
+      pollRetries++;
+      if (pollRetries <= POLL_MAX_RETRIES) {
+        const backoff = Math.min(1500 * pollRetries, 15000);
+        console.warn(`Poll error (retry ${pollRetries}/${POLL_MAX_RETRIES}):`, err);
+        pollTimer = setTimeout(() => pollProgress(total), backoff);
+      } else {
+        pollTimer = null;
+        console.error('Poll failed after max retries:', err);
+        el('progress-label').textContent += ' — 状態確認に失敗しました';
+        el('btn-done').classList.remove('hidden');
+      }
     }
   }, 1500);
 }
@@ -432,7 +446,7 @@ function renderSearchResults(data) {
 
   // Chunks
   const chunksEl = el('chunks-list');
-  if (!data.chunks.length) {
+  if (!data.chunks || !data.chunks.length) {
     chunksEl.innerHTML = '<p class="muted">関連するチャンクが見つかりませんでした</p>';
     return;
   }

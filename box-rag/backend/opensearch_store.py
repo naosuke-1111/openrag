@@ -11,9 +11,9 @@ Update strategy: delete old chunks → ingest new chunks
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
-from opensearchpy import AsyncOpenSearch, RequestsHttpConnection
+from opensearchpy import AsyncOpenSearch
 from opensearchpy.exceptions import NotFoundError
 
 import config as cfg
@@ -29,7 +29,6 @@ def _make_client() -> AsyncOpenSearch:
         use_ssl=cfg.OPENSEARCH_USE_SSL,
         verify_certs=cfg.OPENSEARCH_VERIFY_CERTS,
         ssl_show_warn=False,
-        connection_class=RequestsHttpConnection,
     )
 
 

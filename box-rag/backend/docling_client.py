@@ -6,9 +6,9 @@ Strategy:
 2. Otherwise → use docling Python library directly
 3. Final fallback → basic text extraction (pdfminer / plain text)
 """
+import asyncio
 import io
 import logging
-import mimetypes
 import tempfile
 from pathlib import Path
 from typing import List
@@ -64,7 +64,6 @@ async def _extract_via_library(content: bytes, filename: str, mime_type: str) ->
     """Extract text using the docling Python library."""
     try:
         from docling.document_converter import DocumentConverter
-        import asyncio
 
         def _convert(data: bytes, name: str) -> str:
             with tempfile.NamedTemporaryFile(
@@ -80,7 +79,7 @@ async def _extract_via_library(content: bytes, filename: str, mime_type: str) ->
             finally:
                 Path(tmp_path).unlink(missing_ok=True)
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         text = await loop.run_in_executor(None, _convert, content, filename)
         return text or ""
 

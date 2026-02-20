@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Box RAG — 共有リンク取り込み</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <h1>Box RAG</h1>
+      <span class="header-subtitle">Box 共有リンク × watsonx.ai × OpenSearch</span>
+      <nav>
+        <button class="nav-btn active" data-tab="ingest">取り込み</button>
+        <button class="nav-btn" data-tab="documents">ドキュメント</button>
+        <button class="nav-btn" data-tab="search">RAG 検索</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- ══ INGEST TAB ════════════════════════════════════════════════════════ -->
+    <section id="tab-ingest" class="tab active">
+      <div class="card">
+        <h2>Box 共有リンクを登録</h2>
+
+        <!-- Step 1: Link input -->
+        <div class="step" id="step-link">
+          <label class="field-label">Box 共有リンク URL <span class="required">*</span></label>
+          <input type="url" id="shared-link-url" placeholder="https://ibm.box.com/s/xxxxxx" class="input-full" />
+
+          <label class="field-label mt">パスワード（任意）</label>
+          <input type="password" id="shared-link-password" placeholder="（共有パスワードがある場合）" class="input-full" />
+
+          <label class="field-label mt">タグ</label>
+          <div id="tag-input-area">
+            <input type="text" id="tag-input" placeholder="タグを入力して Enter（例: 社内資料  2024  技術仕様）" class="input-full" />
+            <div id="tag-list" class="tag-list"></div>
+            <p id="tag-error" class="field-error hidden"></p>
+          </div>
+
+          <button id="btn-resolve" class="btn btn-primary mt">リンクを解決</button>
+          <p id="resolve-error" class="field-error hidden"></p>
+        </div>
+
+        <!-- Step 2: File selection -->
+        <div class="step hidden" id="step-selection">
+          <div id="selection-header">
+            <h3 id="selection-title">ファイル選択</h3>
+            <span id="selection-count" class="badge">0 / 20 選択</span>
+          </div>
+          <div id="file-tree" class="file-tree"></div>
+          <div class="action-bar">
+            <button id="btn-back" class="btn btn-ghost">← 戻る</button>
+            <button id="btn-ingest" class="btn btn-primary" disabled>取り込み開始</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Progress -->
+        <div class="step hidden" id="step-progress">
+          <h3>取り込み中…</h3>
+          <div class="progress-bar-wrap">
+            <div id="progress-bar" class="progress-bar" style="width:0%"></div>
+          </div>
+          <p id="progress-label">0 / 0</p>
+          <div id="progress-errors" class="error-list hidden"></div>
+          <button id="btn-done" class="btn btn-primary hidden mt">完了</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ DOCUMENTS TAB ════════════════════════════════════════════════════ -->
+    <section id="tab-documents" class="tab hidden">
+      <div class="card">
+        <h2>取り込み済みドキュメント</h2>
+        <div class="filter-bar">
+          <input type="text" id="doc-filter-tags" placeholder="タグでフィルター（カンマ区切り）" class="input-filter" />
+          <select id="doc-filter-status" class="input-filter">
+            <option value="">全ステータス</option>
+            <option value="indexed">indexed</option>
+            <option value="pending">pending</option>
+            <option value="failed">failed</option>
+          </select>
+          <button id="btn-refresh-docs" class="btn btn-sm">更新</button>
+        </div>
+        <div id="doc-list" class="doc-list">
+          <p class="muted">読み込み中…</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ SEARCH TAB ════════════════════════════════════════════════════════ -->
+    <section id="tab-search" class="tab hidden">
+      <div class="card">
+        <h2>RAG 検索</h2>
+        <div class="search-bar">
+          <input type="text" id="search-query" placeholder="質問を入力（例: 〇〇の手順を教えて）" class="input-full" />
+          <input type="text" id="search-tags" placeholder="タグフィルター（任意）" class="input-filter mt" />
+          <div class="search-options">
+            <label>
+              <input type="checkbox" id="search-generate" checked />
+              回答を生成（watsonx.ai LLM）
+            </label>
+          </div>
+          <button id="btn-search" class="btn btn-primary mt">検索</button>
+        </div>
+
+        <div id="search-results" class="search-results hidden">
+          <div id="answer-box" class="answer-box hidden">
+            <h3>AI 回答</h3>
+            <div id="answer-text"></div>
+          </div>
+          <h3>参考文書</h3>
+          <div id="chunks-list"></div>
+        </div>
+        <p id="search-error" class="field-error hidden"></p>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# ── Box RAG Frontend (nginx static server) ───────────────────────────────────
+# The frontend is served directly by the FastAPI backend.
+# This Dockerfile is provided as an alternative for standalone static hosting.
+FROM nginx:alpine
+
+COPY frontend/ /usr/share/nginx/html/
+
+# Simple nginx config to proxy /api → backend
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80

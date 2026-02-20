@@ -1,0 +1,92 @@
+# ── Box RAG Docker Compose overlay ───────────────────────────────────────────
+#
+# Extends the base OpenRAG docker-compose.yml with the Box RAG service.
+# Run with:
+#   podman-compose -f docker-compose.yml -f box-rag/docker-compose.box-rag.yml up -d
+#
+# Or with docker compose (Docker 20.10+):
+#   docker compose -f docker-compose.yml -f box-rag/docker-compose.box-rag.yml up -d
+#
+# Prerequisites:
+#   1. Copy box-rag/.env.example to box-rag/.env and fill in credentials
+#   2. OpenRAG base stack must be running (for OpenSearch)
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  box-rag-backend:
+    build:
+      context: box-rag
+      dockerfile: Dockerfile.backend
+    image: box-rag-backend:latest
+    container_name: box-rag-backend
+    restart: unless-stopped
+
+    # Share network with OpenRAG services (access opensearch container)
+    networks:
+      - default
+
+    ports:
+      - "${BOX_RAG_PORT:-8100}:8100"
+
+    env_file:
+      - box-rag/.env
+
+    environment:
+      # Override OpenSearch host to match the OpenRAG opensearch container name
+      - OPENSEARCH_HOST=${OPENSEARCH_HOST:-opensearch}
+      - OPENSEARCH_PORT=${OPENSEARCH_PORT:-9200}
+      - OPENSEARCH_USERNAME=${OPENSEARCH_USERNAME:-admin}
+      - OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD}
+      - OPENSEARCH_USE_SSL=${OPENSEARCH_USE_SSL:-true}
+      - OPENSEARCH_VERIFY_CERTS=${OPENSEARCH_VERIFY_CERTS:-false}
+
+      # watsonx.ai (from box-rag/.env)
+      - WATSONX_API_URL
+      - WATSONX_AUTH_URL
+      - WATSONX_API_VERSION
+      - WATSONX_PROJECT_ID
+      - WATSONX_USERNAME
+      - WATSONX_PASSWORD
+      - WATSONX_API_KEY
+      - WATSONX_SSL_VERIFY
+      - WATSONX_CA_BUNDLE_PATH
+      - WATSONX_LLM_ID1
+      - WATSONX_LLM_ID3
+
+      # Box
+      - BOX_CLIENT_ID
+      - BOX_CLIENT_SECRET
+      - BOX_ENTERPRISE_ID
+      - BOX_AUTH_MODE
+      - BOX_JWT_PRIVATE_KEY
+      - BOX_JWT_PRIVATE_KEY_PASSPHRASE
+      - BOX_JWT_PUBLIC_KEY_ID
+
+      # Docling (optional: point to OpenRAG's docling serve if available)
+      - DOCLING_SERVE_URL=${DOCLING_SERVE_URL:-}
+
+      # App
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - BOX_RAG_PORT=8100
+
+    volumes:
+      # Optional: mount CA bundle for self-signed certs
+      - ${WATSONX_CA_BUNDLE_PATH:-/dev/null}:${WATSONX_CA_BUNDLE_PATH:-/dev/null}:ro
+
+    depends_on:
+      - opensearch
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+# Use the same network as the base stack so containers can communicate
+networks:
+  default:
+    name: openrag_default
+    external: true

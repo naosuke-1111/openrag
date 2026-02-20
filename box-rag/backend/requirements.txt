@@ -1,0 +1,26 @@
+# Box RAG Service dependencies
+
+# Web framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.35.0
+python-multipart>=0.0.20
+pydantic>=2.0.0
+
+# HTTP client
+httpx>=0.27.0
+
+# OpenSearch
+opensearch-py[async]>=3.0.0
+
+# Box SDK (v10 / gen)
+box-python-sdk-gen>=1.5.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Text extraction — Docling (install separately if GPU not available)
+# docling==2.41.0  # uncomment if not using Docling serve API
+# pdfminer.six>=20221105  # lightweight PDF fallback
+
+# watsonx.ai — using httpx directly (no SDK dependency for maximum compatibility)
+# Optional: ibm-watsonx-ai>=1.0.0  # IBM's official SDK (alternative)

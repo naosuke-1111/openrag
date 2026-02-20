@@ -1,0 +1,31 @@
+# ── Box RAG Backend ──────────────────────────────────────────────────────────
+# Base: Python 3.11 slim (no CUDA needed — uses Docling serve or basic extract)
+FROM python:3.11-slim AS base
+
+WORKDIR /app
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Install Python dependencies ───────────────────────────────────────────────
+COPY backend/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Optional: pdfminer for PDF fallback (lightweight)
+RUN pip install --no-cache-dir pdfminer.six
+
+# ── Copy application ──────────────────────────────────────────────────────────
+COPY backend/ /app/backend/
+COPY frontend/ /app/frontend/
+
+WORKDIR /app/backend
+
+# ── Runtime ───────────────────────────────────────────────────────────────────
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+EXPOSE 8100
+
+CMD ["python", "main.py"]

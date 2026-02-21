@@ -1,6 +1,6 @@
 
 
-# Configure structured logging early
+# 構造化ログを早期に設定する
 from connectors.langflow_connector_service import LangflowConnectorService
 from connectors.service import ConnectorService
 from services.flows_service import FlowsService
@@ -25,14 +25,14 @@ from starlette.applications import Starlette
 from starlette.routing import Route
 from starlette.responses import JSONResponse
 
-# Set multiprocessing start method to 'spawn' for CUDA compatibility
+# CUDA との互換性を確保するためマルチプロセス起動方式を 'spawn' に設定する
 multiprocessing.set_start_method("spawn", force=True)
 
-# Create process pool FIRST, before any torch/CUDA imports
+# torch/CUDA インポートより前にプロセスプールを作成する
 from utils.process_pool import process_pool  # isort: skip
 import torch
 
-# API endpoints
+# API エンドポイント
 from api import (
     auth,
     chat,
@@ -53,18 +53,18 @@ from api import (
     upload,
 )
 
-# Existing services
+# 既存のサービス
 from api.connector_router import ConnectorRouter
 from auth_middleware import optional_auth, require_auth
 
-# API Key authentication
+# API キー認証
 from api_key_middleware import require_api_key
 from services.api_key_service import APIKeyService
 from api import keys as api_keys
 from api.v1 import chat as v1_chat, search as v1_search, documents as v1_documents, settings as v1_settings, models as v1_models, knowledge_filters as v1_knowledge_filters
 from api.watson_news import routes as watson_news_routes
 
-# Configuration and setup
+# 設定とセットアップ
 from config.settings import (
     API_KEYS_INDEX_BODY,
     API_KEYS_INDEX_NAME,
@@ -76,18 +76,18 @@ from config.settings import (
     get_embedding_model,
     get_index_name,
     is_no_auth_mode,
+    is_dev_mode,
     get_openrag_config,
 )
 from services.auth_service import AuthService
 from services.langflow_mcp_service import LangflowMCPService
 from services.chat_service import ChatService
 
-# Services
+# サービス
 from services.document_service import DocumentService
 from services.knowledge_filter_service import KnowledgeFilterService
 
-# Configuration and setup
-# Services
+# サービス
 from services.langflow_file_service import LangflowFileService
 from services.models_service import ModelsService
 from services.monitor_service import MonitorService
@@ -96,29 +96,29 @@ from services.task_service import TaskService
 from session_manager import SessionManager
 
 logger.info(
-    "CUDA device information",
+    "CUDA デバイス情報",
     cuda_available=torch.cuda.is_available(),
     cuda_version=torch.version.cuda,
 )
 
-# Files to exclude from startup ingestion
+# 起動時の取り込み対象から除外するファイル名
 EXCLUDED_INGESTION_FILES = {"warmup_ocr.pdf"}
 
 
 async def wait_for_opensearch():
-    """Wait for OpenSearch to be ready with retries"""
+    """OpenSearch が準備完了になるまでリトライしながら待機する。"""
     max_retries = 30
     retry_delay = 2
 
     for attempt in range(max_retries):
         try:
             await clients.opensearch.ping()
-            logger.info("OpenSearch is ready")
+            logger.info("OpenSearch の準備が完了しました")
             await TelemetryClient.send_event(Category.OPENSEARCH_SETUP, MessageId.ORB_OS_CONN_ESTABLISHED)
             return
         except Exception as e:
             logger.warning(
-                "OpenSearch not ready yet",
+                "OpenSearch がまだ準備できていません",
                 attempt=attempt + 1,
                 max_retries=max_retries,
                 error=str(e),
@@ -127,14 +127,14 @@ async def wait_for_opensearch():
                 await asyncio.sleep(retry_delay)
             else:
                 await TelemetryClient.send_event(Category.OPENSEARCH_SETUP, MessageId.ORB_OS_TIMEOUT)
-                raise Exception("OpenSearch failed to become ready")
+                raise Exception("OpenSearch の準備完了がタイムアウトしました")
 
 
 async def configure_alerting_security():
-    """Configure OpenSearch alerting plugin security settings"""
+    """OpenSearch アラートプラグインのセキュリティ設定を行う。"""
     try:
-        # For testing, disable backend role filtering to allow all authenticated users
-        # In production, you'd want to configure proper roles instead
+        # テスト向けに、全認証ユーザーを許可するためバックエンドロールフィルタリングを無効化する
+        # 本番環境では適切なロール設定を行うことを推奨する
         alerting_settings = {
             "persistent": {
                 "plugins.alerting.filter_by_backend_roles": "false",
@@ -143,29 +143,29 @@ async def configure_alerting_security():
             }
         }
 
-        # Use admin client (clients.opensearch uses admin credentials)
+        # 管理者クライアントを使用する（clients.opensearch は管理者資格情報を使用）
         response = await clients.opensearch.cluster.put_settings(body=alerting_settings)
         logger.info(
-            "Alerting security settings configured successfully", response=response
+            "アラートセキュリティ設定を正常に構成しました", response=response
         )
     except Exception as e:
-        logger.warning("Failed to configure alerting security settings", error=str(e))
-        # Don't fail startup if alerting config fails
+        logger.warning("アラートセキュリティ設定の構成に失敗しました", error=str(e))
+        # アラート設定が失敗してもサーバー起動を妨げない
 
 
 async def _ensure_opensearch_index():
-    """Ensure OpenSearch index exists when using traditional connector service."""
+    """従来のコネクターサービス使用時に OpenSearch インデックスが存在することを確認する。"""
     try:
         index_name = get_index_name()
-        # Check if index already exists
+        # インデックスが既に存在するか確認する
         if await clients.opensearch.indices.exists(index=index_name):
-            logger.debug("OpenSearch index already exists", index_name=index_name)
+            logger.debug("OpenSearch インデックスは既に存在します", index_name=index_name)
             return
 
-        # Create the index with hard-coded INDEX_BODY (uses OpenAI embedding dimensions)
+        # ハードコードされた INDEX_BODY でインデックスを作成する（OpenAI エンベディング次元数を使用）
         await clients.opensearch.indices.create(index=index_name, body=INDEX_BODY)
         logger.info(
-            "Created OpenSearch index for traditional connector service",
+            "従来のコネクターサービス用 OpenSearch インデックスを作成しました",
             index_name=index_name,
             vector_dimensions=INDEX_BODY["mappings"]["properties"]["chunk_embedding"][
                 "dimension"
@@ -175,55 +175,55 @@ async def _ensure_opensearch_index():
 
     except Exception as e:
         logger.error(
-            "Failed to initialize OpenSearch index for traditional connector service",
+            "従来のコネクターサービス用 OpenSearch インデックスの初期化に失敗しました",
             error=str(e),
             index_name=get_index_name(),
         )
         await TelemetryClient.send_event(Category.OPENSEARCH_INDEX, MessageId.ORB_OS_INDEX_CREATE_FAIL)
-        # Don't raise the exception to avoid breaking the initialization
-        # The service can still function, document operations might fail later
+        # 初期化を妨げないよう例外を伝播させない
+        # サービスは動作継続できるが、後のドキュメント操作が失敗する可能性がある
 
 
 async def init_index():
-    """Initialize OpenSearch index and security roles"""
+    """OpenSearch インデックスとセキュリティロールを初期化する。"""
     try:
         await wait_for_opensearch()
 
-        # Get the configured embedding model from user configuration
+        # ユーザー設定から設定済みのエンベディングモデルを取得する
         config = get_openrag_config()
         embedding_model = config.knowledge.embedding_model
         embedding_provider = config.knowledge.embedding_provider
         embedding_provider_config = config.get_embedding_provider_config()
 
-        # Create dynamic index body based on the configured embedding model
-        # Pass provider and endpoint for dynamic dimension resolution (Ollama probing)
+        # 設定済みのエンベディングモデルに基づいて動的インデックス定義を作成する
+        # Ollama プロービングによる動的次元数解決のためプロバイダーとエンドポイントを渡す
         dynamic_index_body = await create_dynamic_index_body(
             embedding_model,
             provider=embedding_provider,
             endpoint=getattr(embedding_provider_config, "endpoint", None)
         )
 
-        # Create documents index
+        # ドキュメントインデックスを作成する
         index_name = get_index_name()
         if not await clients.opensearch.indices.exists(index=index_name):
             await clients.opensearch.indices.create(
                 index=index_name, body=dynamic_index_body
             )
             logger.info(
-                "Created OpenSearch index",
+                "OpenSearch インデックスを作成しました",
                 index_name=index_name,
                 embedding_model=embedding_model,
             )
             await TelemetryClient.send_event(Category.OPENSEARCH_INDEX, MessageId.ORB_OS_INDEX_CREATED)
         else:
             logger.info(
-                "Index already exists, skipping creation",
+                "インデックスが既に存在するため作成をスキップします",
                 index_name=index_name,
                 embedding_model=embedding_model,
             )
             await TelemetryClient.send_event(Category.OPENSEARCH_INDEX, MessageId.ORB_OS_INDEX_EXISTS)
 
-        # Create knowledge filters index
+        # ナレッジフィルターインデックスを作成する
         knowledge_filter_index_name = "knowledge_filters"
         knowledge_filter_index_body = {
             "mappings": {
@@ -231,11 +231,11 @@ async def init_index():
                     "id": {"type": "keyword"},
                     "name": {"type": "text", "analyzer": "standard"},
                     "description": {"type": "text", "analyzer": "standard"},
-                    "query_data": {"type": "text"},  # Store as text for searching
+                    "query_data": {"type": "text"},  # 検索用にテキストとして保存する
                     "owner": {"type": "keyword"},
                     "allowed_users": {"type": "keyword"},
                     "allowed_groups": {"type": "keyword"},
-                    "subscriptions": {"type": "object"},  # Store subscription data
+                    "subscriptions": {"type": "object"},  # サブスクリプションデータを保存する
                     "created_at": {"type": "date"},
                     "updated_at": {"type": "date"},
                 }
@@ -247,72 +247,72 @@ async def init_index():
                 index=knowledge_filter_index_name, body=knowledge_filter_index_body
             )
             logger.info(
-                "Created knowledge filters index", index_name=knowledge_filter_index_name
+                "ナレッジフィルターインデックスを作成しました", index_name=knowledge_filter_index_name
             )
             await TelemetryClient.send_event(Category.OPENSEARCH_INDEX, MessageId.ORB_OS_KF_INDEX_CREATED)
         else:
             logger.info(
-                "Knowledge filters index already exists, skipping creation",
+                "ナレッジフィルターインデックスが既に存在するため作成をスキップします",
                 index_name=knowledge_filter_index_name,
             )
 
-        # Create API keys index for public API authentication
+        # パブリック API 認証用の API キーインデックスを作成する
         if not await clients.opensearch.indices.exists(index=API_KEYS_INDEX_NAME):
             await clients.opensearch.indices.create(
                 index=API_KEYS_INDEX_NAME, body=API_KEYS_INDEX_BODY
             )
             logger.info(
-                "Created API keys index", index_name=API_KEYS_INDEX_NAME
+                "API キーインデックスを作成しました", index_name=API_KEYS_INDEX_NAME
             )
         else:
             logger.info(
-                "API keys index already exists, skipping creation",
+                "API キーインデックスが既に存在するため作成をスキップします",
                 index_name=API_KEYS_INDEX_NAME,
             )
 
-        # Configure alerting plugin security settings
+        # アラートプラグインのセキュリティ設定を行う
         await configure_alerting_security()
 
     except Exception as e:
         error_msg = str(e).lower()
         if "disk usage exceeded" in error_msg or "flood-stage watermark" in error_msg:
-             logger.error("OpenSearch disk usage exceeded flood-stage watermark. Index creation failed.")
+             logger.error("OpenSearch のディスク使用量がフラッドステージウォーターマークを超えました。インデックス作成に失敗しました。")
              raise Exception(
-                 "OpenSearch disk space is full (flood-stage watermark exceeded). "
-                 "Please free up disk space on your Docker volume or host machine to continue."
+                 "OpenSearch のディスクが満杯です（フラッドステージウォーターマーク超過）。"
+                 "継続するには Docker ボリュームまたはホストマシンのディスク空き容量を確保してください。"
              ) from e
         raise e
 
 
 async def init_index_when_ready():
-    """Wait for the OpenSearch service to be ready and then initialize the OpenSearch index."""
+    """OpenSearch サービスの準備完了を待ってから OpenSearch インデックスを初期化する。"""
     await wait_for_opensearch()
     await init_index()
 
 
 def generate_jwt_keys():
-    """Generate RSA keys for JWT signing if they don't exist"""
+    """JWT 署名用の RSA キーが存在しない場合に生成する。"""
     keys_dir = "keys"
     private_key_path = os.path.join(keys_dir, "private_key.pem")
     public_key_path = os.path.join(keys_dir, "public_key.pem")
 
-    # Create keys directory if it doesn't exist
+    # キーディレクトリが存在しない場合は作成する
     os.makedirs(keys_dir, exist_ok=True)
 
-    # Generate keys if they don't exist
+    # キーが存在しない場合は生成する
     if not os.path.exists(private_key_path):
         try:
-            # Generate private key
+            # 秘密鍵を生成する
             subprocess.run(
                 ["openssl", "genrsa", "-out", private_key_path, "2048"],
                 check=True,
                 capture_output=True,
             )
 
-            # Set restrictive permissions on private key (readable by owner only)
+            # 秘密鍵のパーミッションを制限する（オーナーのみ読み取り可）
             os.chmod(private_key_path, 0o600)
 
-            # Generate public key
+            # 公開鍵を生成する
             subprocess.run(
                 [
                     "openssl",
@@ -327,52 +327,52 @@ def generate_jwt_keys():
                 capture_output=True,
             )
 
-            # Set permissions on public key (readable by all)
+            # 公開鍵のパーミッションを設定する（全員読み取り可）
             os.chmod(public_key_path, 0o644)
 
-            logger.info("Generated RSA keys for JWT signing")
+            logger.info("JWT 署名用の RSA キーを生成しました")
         except subprocess.CalledProcessError as e:
-            logger.error("Failed to generate RSA keys", error=str(e))
+            logger.error("RSA キーの生成に失敗しました", error=str(e))
             TelemetryClient.send_event_sync(Category.SERVICE_INITIALIZATION, MessageId.ORB_SVC_JWT_KEY_FAIL)
             raise
     else:
-        # Ensure correct permissions on existing keys
+        # 既存のキーに正しいパーミッションが設定されていることを確認する
         try:
             os.chmod(private_key_path, 0o600)
             os.chmod(public_key_path, 0o644)
-            logger.info("RSA keys already exist, ensured correct permissions")
+            logger.info("RSA キーが既に存在します。正しいパーミッションを確認しました")
         except OSError as e:
-            logger.warning("Failed to set permissions on existing keys", error=str(e))
+            logger.warning("既存のキーへのパーミッション設定に失敗しました", error=str(e))
 
 
 def _get_documents_dir():
-    """Get the documents directory path, handling both Docker and local environments."""
-    # In Docker, the volume is mounted at /app/openrag-documents
-    # Locally, we use openrag-documents
+    """Docker とローカル環境の両方に対応したドキュメントディレクトリのパスを返す。"""
+    # Docker では /app/openrag-documents にボリュームがマウントされる
+    # ローカル環境では openrag-documents を使用する
     container_env = detect_container_environment()
     if container_env:
         path = os.path.abspath("/app/openrag-documents")
-        logger.debug(f"Running in {container_env}, using container path: {path}")
+        logger.debug(f"{container_env} で実行中です。コンテナパスを使用します: {path}")
         return path
     else:
         path = os.path.abspath(os.path.join(os.getcwd(), "openrag-documents"))
-        logger.debug(f"Running locally, using local path: {path}")
+        logger.debug(f"ローカル環境で実行中です。ローカルパスを使用します: {path}")
         return path
 
 
 async def ingest_default_documents_when_ready(services):
-    """Scan the local documents folder and ingest files like a non-auth upload."""
+    """ローカルのドキュメントフォルダをスキャンして、認証なしアップロードと同様にファイルを取り込む。"""
     try:
         logger.info(
-            "Ingesting default documents when ready",
+            "デフォルトドキュメントの取り込みを開始します",
             disable_langflow_ingest=DISABLE_INGEST_WITH_LANGFLOW,
         )
         await TelemetryClient.send_event(Category.DOCUMENT_INGESTION, MessageId.ORB_DOC_DEFAULT_START)
         base_dir = _get_documents_dir()
         if not os.path.isdir(base_dir):
-            raise FileNotFoundError(f"Default documents directory not found: {base_dir}")
+            raise FileNotFoundError(f"デフォルトドキュメントディレクトリが見つかりません: {base_dir}")
 
-        # Collect files recursively, excluding warmup files
+        # ウォームアップファイルを除外して再帰的にファイルを収集する
         file_paths = [
             os.path.join(root, fn)
             for root, _, files in os.walk(base_dir)
@@ -381,7 +381,7 @@ async def ingest_default_documents_when_ready(services):
         ]
 
         if not file_paths:
-            raise FileNotFoundError(f"No default documents found in {base_dir}")
+            raise FileNotFoundError(f"{base_dir} にデフォルトドキュメントが見つかりません")
 
         if DISABLE_INGEST_WITH_LANGFLOW:
             await _ingest_default_documents_openrag(services, file_paths)
@@ -391,42 +391,42 @@ async def ingest_default_documents_when_ready(services):
         await TelemetryClient.send_event(Category.DOCUMENT_INGESTION, MessageId.ORB_DOC_DEFAULT_COMPLETE)
 
     except Exception as e:
-        logger.error("Default documents ingestion failed", error=str(e))
+        logger.error("デフォルトドキュメントの取り込みに失敗しました", error=str(e))
         await TelemetryClient.send_event(Category.DOCUMENT_INGESTION, MessageId.ORB_DOC_DEFAULT_FAILED)
         raise
 
 
 async def _ingest_default_documents_langflow(services, file_paths):
-    """Ingest default documents using Langflow upload-ingest-delete pipeline."""
+    """Langflow のアップロード→取り込み→削除パイプラインでデフォルトドキュメントを取り込む。"""
     langflow_file_service = services["langflow_file_service"]
     session_manager = services["session_manager"]
     task_service = services["task_service"]
 
     logger.info(
-        "Using Langflow ingestion pipeline for default documents",
+        "デフォルトドキュメントに Langflow 取り込みパイプラインを使用します",
         file_count=len(file_paths),
     )
 
-    # Use AnonymousUser details for default documents
+    # デフォルトドキュメントには匿名ユーザー情報を使用する
     from session_manager import AnonymousUser
 
     anonymous_user = AnonymousUser()
 
-    # Get JWT token using same logic as DocumentFileProcessor
-    # This will handle anonymous JWT creation if needed for anonymous user
+    # DocumentFileProcessor と同じロジックで JWT トークンを取得する
+    # 匿名ユーザーに必要な場合は匿名 JWT の作成も処理する
     effective_jwt = None
 
-    # Let session manager handle anonymous JWT creation if needed
+    # セッションマネージャーに匿名 JWT の作成を任せる
     if session_manager:
-        # This call will create anonymous JWT if needed (same as DocumentFileProcessor)
+        # DocumentFileProcessor と同様に、必要に応じて匿名 JWT を作成する
         session_manager.get_user_opensearch_client(
             anonymous_user.user_id, effective_jwt
         )
-        # Get the JWT that was created by session manager
+        # セッションマネージャーが作成した JWT を取得する
         if hasattr(session_manager, "_anonymous_jwt"):
             effective_jwt = session_manager._anonymous_jwt
 
-    # Prepare tweaks for default documents with anonymous user metadata
+    # 匿名ユーザーメタデータでデフォルトドキュメント用のツイークを準備する
     default_tweaks = {
         "OpenSearchVectorStoreComponentMultimodalMultiEmbedding-By9U4": {
             "docs_metadata": [
@@ -439,37 +439,37 @@ async def _ingest_default_documents_langflow(services, file_paths):
         }
     }
 
-    # Create a langflow upload task for trackable progress
+    # 進捗追跡可能な Langflow アップロードタスクを作成する
     task_id = await task_service.create_langflow_upload_task(
-        user_id=None,  # Anonymous user
+        user_id=None,  # 匿名ユーザー
         file_paths=file_paths,
         langflow_file_service=langflow_file_service,
         session_manager=session_manager,
         jwt_token=effective_jwt,
         owner_name=anonymous_user.name,
         owner_email=anonymous_user.email,
-        session_id=None,  # No session for default documents
+        session_id=None,  # デフォルトドキュメントにはセッションなし
         tweaks=default_tweaks,
-        settings=None,  # Use default ingestion settings
-        delete_after_ingest=True,  # Clean up after ingestion
+        settings=None,  # デフォルトの取り込み設定を使用する
+        delete_after_ingest=True,  # 取り込み後にクリーンアップする
         replace_duplicates=True,
     )
 
     logger.info(
-        "Started Langflow ingestion task for default documents",
+        "デフォルトドキュメント用 Langflow 取り込みタスクを開始しました",
         task_id=task_id,
         file_count=len(file_paths),
     )
 
 async def health_check(request):
-    """Simple liveness probe: Indicates that the OpenRAG Backend service is online and running."""
+    """シンプルな生存確認プローブ: OpenRAG バックエンドサービスが稼働中であることを示す。"""
     return JSONResponse({"status": "ok"}, status_code=200)
 
 
 async def opensearch_health_ready(request):
-    """Readiness probe: verifies OpenSearch dependency is reachable."""
+    """準備完了プローブ: OpenSearch 依存サービスへの接続を確認する。"""
     try:
-        # Fast check that the cluster is reachable/auth works
+        # クラスターへの到達性と認証を高速チェックする
         await asyncio.wait_for(clients.opensearch.info(), timeout=5.0)
         return JSONResponse(
             {"status": "ready", "dependencies": {"opensearch": "up"}},
@@ -486,13 +486,13 @@ async def opensearch_health_ready(request):
         )
 
 async def _ingest_default_documents_openrag(services, file_paths):
-    """Ingest default documents using traditional OpenRAG processor."""
+    """従来の OpenRAG プロセッサーでデフォルトドキュメントを取り込む。"""
     logger.info(
-        "Using traditional OpenRAG ingestion for default documents",
+        "デフォルトドキュメントに従来の OpenRAG 取り込みを使用します",
         file_count=len(file_paths),
     )
 
-    # Build a processor that DOES NOT set 'owner' on documents (owner_user_id=None)
+    # ドキュメントに 'owner' を設定しないプロセッサーを構築する（owner_user_id=None）
     from models.processors import DocumentFileProcessor
 
     processor = DocumentFileProcessor(
@@ -501,81 +501,80 @@ async def _ingest_default_documents_openrag(services, file_paths):
         jwt_token=None,
         owner_name=None,
         owner_email=None,
-        is_sample_data=True,  # Mark as sample data
+        is_sample_data=True,  # サンプルデータとしてマークする
     )
 
     task_id = await services["task_service"].create_custom_task(
         "anonymous", file_paths, processor
     )
     logger.info(
-        "Started traditional OpenRAG ingestion task",
+        "従来の OpenRAG 取り込みタスクを開始しました",
         task_id=task_id,
         file_count=len(file_paths),
     )
 
 
 async def _update_mcp_servers_with_provider_credentials(services):
-    """Update MCP servers with provider credentials at startup.
+    """起動時にプロバイダー資格情報で MCP サーバーを更新する。
 
-    This is especially important for no-auth mode where users don't go through
-    the OAuth login flow that would normally set these credentials.
+    通常の OAuth ログインフローを経ない認証なしモードで特に重要な処理。
     """
     try:
         auth_service = services.get("auth_service")
         session_manager = services.get("session_manager")
 
         if not auth_service or not auth_service.langflow_mcp_service:
-            logger.debug("MCP service not available, skipping credential update")
+            logger.debug("MCP サービスが利用できません。資格情報の更新をスキップします")
             return
 
         config = get_openrag_config()
 
-        # Build global vars with provider credentials using utility function
+        # ユーティリティ関数を使ってプロバイダー資格情報からグローバル変数を構築する
         from utils.langflow_headers import build_mcp_global_vars_from_config
 
         global_vars = build_mcp_global_vars_from_config(config)
 
-        # In no-auth mode, add the anonymous JWT token and user details
+        # 認証なしモードでは匿名 JWT トークンとユーザー詳細を追加する
         if is_no_auth_mode() and session_manager:
             from session_manager import AnonymousUser
 
-            # Create/get anonymous JWT for no-auth mode
+            # 認証なしモード用の匿名 JWT を作成または取得する
             anonymous_jwt = session_manager.get_effective_jwt_token(None, None)
             if anonymous_jwt:
                 global_vars["JWT"] = anonymous_jwt
 
-            # Add anonymous user details
+            # 匿名ユーザーの詳細を追加する
             anonymous_user = AnonymousUser()
             global_vars["OWNER"] = anonymous_user.user_id  # "anonymous"
-            global_vars["OWNER_NAME"] = f'"{anonymous_user.name}"'  # "Anonymous User" (quoted for spaces)
+            global_vars["OWNER_NAME"] = f'"{anonymous_user.name}"'  # "Anonymous User"（スペースのためクォート）
             global_vars["OWNER_EMAIL"] = anonymous_user.email  # "anonymous@localhost"
 
-            logger.info("Added anonymous JWT and user details to MCP servers for no-auth mode")
+            logger.info("認証なしモード用に匿名 JWT とユーザー詳細を MCP サーバーに追加しました")
 
         if global_vars:
             result = await auth_service.langflow_mcp_service.update_mcp_servers_with_global_vars(global_vars)
-            logger.info("Updated MCP servers with provider credentials at startup", **result)
+            logger.info("起動時にプロバイダー資格情報で MCP サーバーを更新しました", **result)
         else:
-            logger.debug("No provider credentials configured, skipping MCP server update")
+            logger.debug("プロバイダー資格情報が設定されていません。MCP サーバーの更新をスキップします")
 
     except Exception as e:
-        logger.warning("Failed to update MCP servers with provider credentials at startup", error=str(e))
-        # Don't fail startup if MCP update fails
+        logger.warning("起動時の MCP サーバーへのプロバイダー資格情報更新に失敗しました", error=str(e))
+        # MCP の更新が失敗してもサーバー起動を妨げない
 
 
 async def startup_tasks(services):
-    """Startup tasks"""
-    logger.info("Starting startup tasks")
+    """起動時タスクを実行する。"""
+    logger.info("起動時タスクを開始します")
     await TelemetryClient.send_event(Category.APPLICATION_STARTUP, MessageId.ORB_APP_START_INIT)
-    # Only initialize basic OpenSearch connection, not the index
-    # Index will be created after onboarding when we know the embedding model
+    # 基本的な OpenSearch 接続のみ初期化する（インデックスはまだ作成しない）
+    # インデックスはエンベディングモデルが確定するオンボーディング後に作成する
     await wait_for_opensearch()
 
     if DISABLE_INGEST_WITH_LANGFLOW:
         await _ensure_opensearch_index()
 
-    # Ensure that the OpenSearch index exists if onboarding was already completed
-    # - Handles the case where OpenSearch is reset (e.g., volume deleted) after onboarding
+    # オンボーディング済みの場合は OpenSearch インデックスが存在することを確認する
+    # - オンボーディング後に OpenSearch がリセット（例: ボリューム削除）された場合に対応する
     embedding_model = None
     try:
         config = get_openrag_config()
@@ -583,83 +582,83 @@ async def startup_tasks(services):
 
         if config.edited and embedding_model:
             logger.info(
-                "Ensuring that the OpenSearch index exists (after onboarding)...",
+                "OpenSearch インデックスが存在することを確認中です（オンボーディング後）...",
                 embedding_model=embedding_model,
             )
 
             await init_index()
 
             logger.info(
-                "Successfully ensured that the OpenSearch index exists (after onboarding).",
+                "OpenSearch インデックスの存在確認が完了しました（オンボーディング後）",
                 embedding_model=embedding_model,
             )
     except Exception as e:
         logger.error(
-            "Failed to ensure that the OpenSearch index exists (after onboarding).",
+            "OpenSearch インデックスの存在確認に失敗しました（オンボーディング後）",
             embedding_model=embedding_model,
             error=str(e),
         )
         raise
 
-    # Configure alerting security
+    # アラートセキュリティを設定する
     await configure_alerting_security()
 
-    # Update MCP servers with provider credentials (especially important for no-auth mode)
+    # プロバイダー資格情報で MCP サーバーを更新する（認証なしモードで特に重要）
     await _update_mcp_servers_with_provider_credentials(services)
 
-    # Check if flows were reset and reapply settings if config is edited
+    # フローがリセットされているか確認し、設定が編集済みであれば再適用する
     try:
         config = get_openrag_config()
         if config.edited:
-            logger.info("Checking if Langflow flows were reset")
+            logger.info("Langflow フローがリセットされていないか確認します")
             flows_service = services["flows_service"]
             reset_flows = await flows_service.check_flows_reset()
 
             if reset_flows:
                 logger.info(
-                    f"Detected reset flows: {', '.join(reset_flows)}. Reapplying all settings."
+                    f"リセットされたフローを検出しました: {', '.join(reset_flows)}。全設定を再適用します。"
                 )
                 await TelemetryClient.send_event(Category.FLOW_OPERATIONS, MessageId.ORB_FLOW_RESET_DETECTED)
                 from api.settings import reapply_all_settings
                 await reapply_all_settings(session_manager=services["session_manager"])
-                logger.info("Successfully reapplied settings after detecting flow resets")
+                logger.info("フローリセット検出後の設定再適用が完了しました")
                 await TelemetryClient.send_event(Category.FLOW_OPERATIONS, MessageId.ORB_FLOW_SETTINGS_REAPPLIED)
             else:
-                logger.info("No flows detected as reset, skipping settings reapplication")
+                logger.info("リセットされたフローは検出されませんでした。設定の再適用をスキップします")
         else:
-            logger.debug("Configuration not yet edited, skipping flow reset check")
+            logger.debug("設定がまだ編集されていません。フローリセット確認をスキップします")
     except Exception as e:
-        logger.error(f"Failed to check flows reset or reapply settings: {str(e)}")
+        logger.error(f"フローリセット確認または設定再適用に失敗しました: {str(e)}")
         await TelemetryClient.send_event(Category.FLOW_OPERATIONS, MessageId.ORB_FLOW_RESET_CHECK_FAIL)
-        # Don't fail startup if this check fails
+        # この確認が失敗してもサーバー起動を妨げない
 
-    # Initialize Watson News OpenSearch indices (non-blocking)
+    # Watson News OpenSearch インデックスを初期化する（ノンブロッキング）
     try:
         from services.watson_news_service import ensure_indices
         await ensure_indices()
-        logger.info("Watson News OpenSearch indices ensured")
+        logger.info("Watson News OpenSearch インデックスを確認しました")
     except Exception as exc:
-        logger.warning("Watson News index initialization failed (non-fatal)", error=str(exc))
+        logger.warning("Watson News インデックスの初期化に失敗しました（致命的ではありません）", error=str(exc))
 
 
 async def initialize_services():
-    """Initialize all services and their dependencies"""
+    """全サービスとその依存関係を初期化する。"""
     await TelemetryClient.send_event(Category.SERVICE_INITIALIZATION, MessageId.ORB_SVC_INIT_START)
-    # Generate JWT keys if they don't exist
+    # JWT キーが存在しない場合は生成する
     generate_jwt_keys()
 
-    # Initialize clients (now async to generate Langflow API key)
+    # クライアントを初期化する（Langflow API キー生成のため非同期）
     try:
         await clients.initialize()
     except Exception as e:
-        logger.error("Failed to initialize clients", error=str(e))
+        logger.error("クライアントの初期化に失敗しました", error=str(e))
         await TelemetryClient.send_event(Category.SERVICE_INITIALIZATION, MessageId.ORB_SVC_OS_CLIENT_FAIL)
         raise
 
-    # Initialize session manager
+    # セッションマネージャーを初期化する
     session_manager = SessionManager(SESSION_SECRET)
 
-    # Initialize services
+    # 各サービスを初期化する
     document_service = DocumentService(session_manager=session_manager)
     search_service = SearchService(session_manager)
     task_service = TaskService(document_service, process_pool, ingestion_timeout=INGESTION_TIMEOUT)
@@ -669,18 +668,18 @@ async def initialize_services():
     models_service = ModelsService()
     monitor_service = MonitorService(session_manager)
 
-    # Set process pool for document service
+    # ドキュメントサービスにプロセスプールを設定する
     document_service.process_pool = process_pool
 
-    # Initialize connector service
+    # コネクターサービスを初期化する
 
-    # Initialize both connector services
+    # Langflow 用と OpenRAG 用の両コネクターサービスを初期化する
     langflow_connector_service = LangflowConnectorService(
         task_service=task_service,
         session_manager=session_manager,
     )
     openrag_connector_service = ConnectorService(
-        patched_async_client=clients,  # Pass the clients object itself
+        patched_async_client=clients,  # クライアントオブジェクト自体を渡す
         process_pool=process_pool,
         embed_model=get_embedding_model(),
         index_name=get_index_name(),
@@ -688,44 +687,44 @@ async def initialize_services():
         session_manager=session_manager,
     )
 
-    # Create connector router that chooses based on configuration
+    # 設定に基づいてどちらかを選択するコネクタールーターを作成する
     connector_service = ConnectorRouter(
         langflow_connector_service=langflow_connector_service,
         openrag_connector_service=openrag_connector_service,
     )
 
-    # Initialize auth service
+    # 認証サービスを初期化する
     auth_service = AuthService(
         session_manager,
         connector_service,
         langflow_mcp_service=LangflowMCPService(),
     )
 
-    # Load persisted connector connections at startup so webhooks and syncs
-    # can resolve existing subscriptions immediately after server boot
-    # Skip in no-auth mode since connectors require OAuth
+    # 起動時に永続化されたコネクター接続を読み込む
+    # Webhook とSync がサーバー起動直後に既存サブスクリプションを解決できるようにする
+    # コネクターは OAuth が必要なため、認証なしモードではスキップする
 
     if not is_no_auth_mode():
         try:
             await connector_service.initialize()
             loaded_count = len(connector_service.connection_manager.connections)
             logger.info(
-                "Loaded persisted connector connections on startup",
+                "起動時に永続化されたコネクター接続を読み込みました",
                 loaded_count=loaded_count,
             )
         except Exception as e:
             logger.warning(
-                "Failed to load persisted connections on startup", error=str(e)
+                "起動時の永続化接続の読み込みに失敗しました", error=str(e)
             )
             await TelemetryClient.send_event(Category.CONNECTOR_OPERATIONS, MessageId.ORB_CONN_LOAD_FAILED)
     else:
-        logger.info("[CONNECTORS] Skipping connection loading in no-auth mode")
+        logger.info("[コネクター] 認証なしモードのため接続読み込みをスキップします")
 
     await TelemetryClient.send_event(Category.SERVICE_INITIALIZATION, MessageId.ORB_SVC_INIT_SUCCESS)
 
     langflow_file_service = LangflowFileService()
 
-    # API Key service for public API authentication
+    # パブリック API 認証用の API キーサービス
     api_key_service = APIKeyService(session_manager)
 
     return {
@@ -746,12 +745,12 @@ async def initialize_services():
 
 
 async def create_app():
-    """Create and configure the Starlette application"""
+    """Starlette アプリケーションを作成して設定する。"""
     services = await initialize_services()
 
-    # Create route handlers with service dependencies injected
+    # サービス依存関係を注入したルートハンドラーを作成する
     routes = [
-        # Langflow Files endpoints
+        # Langflow ファイルエンドポイント
         Route(
             "/langflow/files/upload",
             optional_auth(services["session_manager"])(
@@ -873,7 +872,7 @@ async def create_app():
             ),
             methods=["POST"],
         ),
-        # Search endpoint
+        # 検索エンドポイント
         Route(
             "/search",
             require_auth(services["session_manager"])(
@@ -885,7 +884,7 @@ async def create_app():
             ),
             methods=["POST"],
         ),
-        # Knowledge Filter endpoints
+        # ナレッジフィルターエンドポイント
         Route(
             "/knowledge-filter",
             require_auth(services["session_manager"])(
@@ -941,7 +940,7 @@ async def create_app():
             ),
             methods=["DELETE"],
         ),
-        # Knowledge Filter Subscription endpoints
+        # ナレッジフィルターサブスクリプションエンドポイント
         Route(
             "/knowledge-filter/{filter_id}/subscribe",
             require_auth(services["session_manager"])(
@@ -977,7 +976,7 @@ async def create_app():
             ),
             methods=["DELETE"],
         ),
-        # Knowledge Filter Webhook endpoint (no auth required - called by OpenSearch)
+        # ナレッジフィルター Webhook エンドポイント（認証不要 - OpenSearch から呼び出される）
         Route(
             "/knowledge-filter/{filter_id}/webhook/{subscription_id}",
             partial(
@@ -987,7 +986,7 @@ async def create_app():
             ),
             methods=["POST"],
         ),
-        # Chat endpoints
+        # チャットエンドポイント
         Route(
             "/chat",
             require_auth(services["session_manager"])(
@@ -1010,7 +1009,7 @@ async def create_app():
             ),
             methods=["POST"],
         ),
-        # Chat history endpoints
+        # チャット履歴エンドポイント
         Route(
             "/chat/history",
             require_auth(services["session_manager"])(
@@ -1033,7 +1032,7 @@ async def create_app():
             ),
             methods=["GET"],
         ),
-        # Session deletion endpoint
+        # セッション削除エンドポイント
         Route(
             "/sessions/{session_id}",
             require_auth(services["session_manager"])(
@@ -1045,7 +1044,7 @@ async def create_app():
             ),
             methods=["DELETE"],
         ),
-        # Authentication endpoints
+        # 認証エンドポイント
         Route(
             "/auth/init",
             optional_auth(services["session_manager"])(
@@ -1088,7 +1087,7 @@ async def create_app():
             ),
             methods=["POST"],
         ),
-        # Connector endpoints
+        # コネクターエンドポイント
         Route(
             "/connectors",
             require_auth(services["session_manager"])(
@@ -1164,7 +1163,7 @@ async def create_app():
             ),
             methods=["POST", "GET"],
         ),
-        # Document endpoints
+        # ドキュメントエンドポイント
         Route(
             "/documents/check-filename",
             require_auth(services["session_manager"])(
@@ -1187,7 +1186,7 @@ async def create_app():
             ),
             methods=["POST"],
         ),
-        # OIDC endpoints
+        # OIDC エンドポイント
         Route(
             "/.well-known/openid-configuration",
             partial(oidc.oidc_discovery, session_manager=services["session_manager"]),
@@ -1205,7 +1204,7 @@ async def create_app():
             ),
             methods=["POST"],
         ),
-        # Settings endpoints
+        # 設定エンドポイント
         Route(
             "/settings",
             require_auth(services["session_manager"])(
@@ -1232,7 +1231,7 @@ async def create_app():
             ),
             methods=["POST"],
         ),
-        # Provider health check endpoint
+        # プロバイダーヘルスチェックエンドポイント
         Route(
             "/provider/health",
             require_auth(services["session_manager"])(
@@ -1240,7 +1239,7 @@ async def create_app():
             ),
             methods=["GET"],
         ),
-        # Health check endpoints
+        # ヘルスチェックエンドポイント
         Route(
             "/health",
             health_check,
@@ -1251,7 +1250,7 @@ async def create_app():
             opensearch_health_ready,
             methods=["GET"],
         ),
-        # Models endpoints
+        # モデルエンドポイント
         Route(
             "/models/openai",
             require_auth(services["session_manager"])(
@@ -1296,7 +1295,7 @@ async def create_app():
             ),
             methods=["POST"],
         ),
-        # Onboarding endpoint
+        # オンボーディングエンドポイント
         Route(
             "/onboarding",
             require_auth(services["session_manager"])(
@@ -1308,7 +1307,7 @@ async def create_app():
             ),
             methods=["POST"],
         ),
-        # Onboarding rollback endpoint
+        # オンボーディングロールバックエンドポイント
         Route(
             "/onboarding/rollback",
             require_auth(services["session_manager"])(
@@ -1320,7 +1319,7 @@ async def create_app():
             ),
             methods=["POST"],
         ),
-        # Docling preset update endpoint
+        # Docling プリセット更新エンドポイント
         Route(
             "/settings/docling-preset",
             require_auth(services["session_manager"])(
@@ -1376,13 +1375,13 @@ async def create_app():
             ),
             methods=["POST"],
         ),
-        # Docling service proxy
+        # Docling サービスプロキシ
         Route(
             "/docling/health",
             partial(docling.health),
             methods=["GET"],
         ),
-        # ===== API Key Management Endpoints (JWT auth for UI) =====
+        # ===== API キー管理エンドポイント（UI 向け JWT 認証） =====
         Route(
             "/keys",
             require_auth(services["session_manager"])(
@@ -1413,8 +1412,8 @@ async def create_app():
             ),
             methods=["DELETE"],
         ),
-        # ===== Public API v1 Endpoints (API Key auth) =====
-        # Chat endpoints
+        # ===== パブリック API v1 エンドポイント（API キー認証） =====
+        # チャットエンドポイント
         Route(
             "/v1/chat",
             require_api_key(services["api_key_service"])(
@@ -1459,7 +1458,7 @@ async def create_app():
             ),
             methods=["DELETE"],
         ),
-        # Search endpoint
+        # 検索エンドポイント
         Route(
             "/v1/search",
             require_api_key(services["api_key_service"])(
@@ -1471,7 +1470,7 @@ async def create_app():
             ),
             methods=["POST"],
         ),
-        # Documents endpoints
+        # ドキュメントエンドポイント
         Route(
             "/v1/documents/ingest",
             require_api_key(services["api_key_service"])(
@@ -1507,7 +1506,7 @@ async def create_app():
             ),
             methods=["DELETE"],
         ),
-        # Settings endpoints
+        # 設定エンドポイント
         Route(
             "/v1/settings",
             require_api_key(services["api_key_service"])(
@@ -1535,7 +1534,7 @@ async def create_app():
             ),
             methods=["GET"],
         ),
-        # Knowledge filters endpoints
+        # ナレッジフィルターエンドポイント
         Route(
             "/v1/knowledge-filters",
             require_api_key(services["api_key_service"])(
@@ -1592,7 +1591,7 @@ async def create_app():
             methods=["DELETE"],
         ),
         # ----------------------------------------------------------------
-        # Watson News API endpoints
+        # Watson News API エンドポイント
         # ----------------------------------------------------------------
         Route(
             "/api/watson-news/articles",
@@ -1636,85 +1635,92 @@ async def create_app():
         ),
     ]
 
-    app = Starlette(debug=True, routes=routes)
-    app.state.services = services  # Store services for cleanup
+    # 開発モード（APP_ENV=development）の場合は Starlette のデバッグモードを有効化する
+    debug_mode = is_dev_mode()
+    logger.info(
+        "Starlette アプリケーションを作成します",
+        debug=debug_mode,
+        app_env="development" if debug_mode else "production",
+    )
+    app = Starlette(debug=debug_mode, routes=routes)
+    app.state.services = services  # クリーンアップ用にサービスを保存する
     app.state.background_tasks = set()
 
-    # Add startup event handler
+    # 起動イベントハンドラーを追加する
     @app.on_event("startup")
     async def startup_event():
         await TelemetryClient.send_event(Category.APPLICATION_STARTUP, MessageId.ORB_APP_STARTED)
-        # Start index initialization in background to avoid blocking OIDC endpoints
+        # OIDC エンドポイントをブロックしないようインデックス初期化をバックグラウンドで開始する
         t1 = asyncio.create_task(startup_tasks(services))
         app.state.background_tasks.add(t1)
         t1.add_done_callback(app.state.background_tasks.discard)
 
-        # Start periodic task cleanup scheduler
+        # 定期タスククリーンアップスケジューラーを開始する
         services["task_service"].start_cleanup_scheduler()
 
-        # Start Watson News ETL scheduler
+        # Watson News ETL スケジューラーを開始する
         try:
             from connectors.watson_news.scheduler import start_scheduler
             start_scheduler()
-            logger.info("Watson News ETL scheduler started")
+            logger.info("Watson News ETL スケジューラーを開始しました")
         except Exception as exc:
-            logger.warning("Watson News scheduler could not start (non-fatal)", error=str(exc))
+            logger.warning("Watson News スケジューラーを開始できませんでした（致命的ではありません）", error=str(exc))
 
-        # Start periodic flow backup task (every 5 minutes)
+        # 定期フローバックアップタスクを開始する（5分間隔）
         async def periodic_backup():
-            """Periodic backup task that runs every 15 minutes"""
+            """15分間隔で実行される定期バックアップタスク。"""
             while True:
                 try:
-                    await asyncio.sleep(5 * 60)  # Wait 5 minutes
+                    await asyncio.sleep(5 * 60)  # 5分待機する
 
-                    # Check if onboarding has been completed
+                    # オンボーディングが完了しているか確認する
                     config = get_openrag_config()
                     if not config.edited:
-                        logger.debug("Onboarding not completed yet, skipping periodic backup")
+                        logger.debug("オンボーディングが未完了のため定期バックアップをスキップします")
                         continue
 
                     flows_service = services.get("flows_service")
                     if flows_service:
-                        logger.info("Running periodic flow backup")
+                        logger.info("定期フローバックアップを実行します")
                         backup_results = await flows_service.backup_all_flows(only_if_changed=True)
                         if backup_results["backed_up"]:
                             logger.info(
-                                "Periodic backup completed",
+                                "定期バックアップが完了しました",
                                 backed_up=len(backup_results["backed_up"]),
                                 skipped=len(backup_results["skipped"]),
                             )
                         else:
                             logger.debug(
-                                "Periodic backup: no flows changed",
+                                "定期バックアップ: 変更されたフローはありませんでした",
                                 skipped=len(backup_results["skipped"]),
                             )
                 except asyncio.CancelledError:
-                    logger.info("Periodic backup task cancelled")
+                    logger.info("定期バックアップタスクがキャンセルされました")
                     break
                 except Exception as e:
-                    logger.error(f"Error in periodic backup task: {str(e)}")
-                    # Continue running even if one backup fails
+                    logger.error(f"定期バックアップタスクでエラーが発生しました: {str(e)}")
+                    # バックアップが失敗しても実行を継続する
 
         backup_task = asyncio.create_task(periodic_backup())
         app.state.background_tasks.add(backup_task)
         backup_task.add_done_callback(app.state.background_tasks.discard)
 
-    # Add shutdown event handler
+    # シャットダウンイベントハンドラーを追加する
     @app.on_event("shutdown")
     async def shutdown_event():
         await TelemetryClient.send_event(Category.APPLICATION_SHUTDOWN, MessageId.ORB_APP_SHUTDOWN)
         await cleanup_subscriptions_proper(services)
-        # Cleanup task service (cancels background tasks and process pool)
+        # タスクサービスをクリーンアップする（バックグラウンドタスクとプロセスプールをキャンセル）
         await services["task_service"].shutdown()
-        # Stop Watson News ETL scheduler
+        # Watson News ETL スケジューラーを停止する
         try:
             from connectors.watson_news.scheduler import stop_scheduler
             stop_scheduler()
         except Exception:
             pass
-        # Cleanup async clients
+        # 非同期クライアントをクリーンアップする
         await clients.cleanup()
-        # Cleanup telemetry client
+        # テレメトリクライアントをクリーンアップする
         from utils.telemetry.client import cleanup_telemetry_client
         await cleanup_telemetry_client()
 
@@ -1722,21 +1728,21 @@ async def create_app():
 
 
 def cleanup():
-    """Cleanup on application shutdown"""
-    # Cleanup process pools only (webhooks handled by Starlette shutdown)
-    logger.info("Application shutting down")
+    """アプリケーション終了時のクリーンアップ処理。"""
+    # プロセスプールのみクリーンアップする（Webhook は Starlette シャットダウンが処理）
+    logger.info("アプリケーションをシャットダウンしています")
     pass
 
 
 async def cleanup_subscriptions_proper(services):
-    """Cancel all active webhook subscriptions"""
-    logger.info("Cancelling active webhook subscriptions")
+    """全てのアクティブな Webhook サブスクリプションをキャンセルする。"""
+    logger.info("アクティブな Webhook サブスクリプションをキャンセルしています")
 
     try:
         connector_service = services["connector_service"]
         await connector_service.connection_manager.load_connections()
 
-        # Get all active connections with webhook subscriptions
+        # Webhook サブスクリプションを持つ全アクティブ接続を取得する
         all_connections = await connector_service.connection_manager.list_connections()
         active_connections = [
             c
@@ -1747,7 +1753,7 @@ async def cleanup_subscriptions_proper(services):
         for connection in active_connections:
             try:
                 logger.info(
-                    "Cancelling subscription for connection",
+                    "接続のサブスクリプションをキャンセルしています",
                     connection_id=connection.connection_id,
                 )
                 connector = await connector_service.get_connector(
@@ -1757,43 +1763,43 @@ async def cleanup_subscriptions_proper(services):
                     subscription_id = connection.config.get("webhook_channel_id")
                     await connector.cleanup_subscription(subscription_id)
                     logger.info(
-                        "Cancelled subscription", subscription_id=subscription_id
+                        "サブスクリプションをキャンセルしました", subscription_id=subscription_id
                     )
             except Exception as e:
                 logger.error(
-                    "Failed to cancel subscription",
+                    "サブスクリプションのキャンセルに失敗しました",
                     connection_id=connection.connection_id,
                     error=str(e),
                 )
 
         logger.info(
-            "Finished cancelling subscriptions",
+            "サブスクリプションのキャンセルが完了しました",
             subscription_count=len(active_connections),
         )
 
     except Exception as e:
-        logger.error("Failed to cleanup subscriptions", error=str(e))
+        logger.error("サブスクリプションのクリーンアップに失敗しました", error=str(e))
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    # TUI check already handled at top of file
-    # Register cleanup function
+    # TUI チェックはファイル先頭で処理済み
+    # クリーンアップ関数を登録する
     atexit.register(cleanup)
 
-    # Create app asynchronously
+    # アプリケーションを非同期で作成する
     app = asyncio.run(create_app())
 
-    # Enable or disable HTTP access logging events
+    # HTTP アクセスログの有効・無効を設定する
     access_log = os.getenv("ACCESS_LOG", "true").lower() == "true"
 
-    # Run the server (startup tasks now handled by Starlette startup event)
+    # サーバーを起動する（起動タスクは Starlette の startup イベントで処理される）
     uvicorn.run(
         app,
         workers=1,
         host="0.0.0.0",
         port=8000,
-        reload=False,  # Disable reload since we're running from main
+        reload=False,  # main から実行するためリロードを無効化する
         access_log=access_log,
     )

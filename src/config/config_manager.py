@@ -1,4 +1,4 @@
-"""Configuration management for OpenRAG."""
+"""OpenRAG の設定管理モジュール。"""
 
 import os
 import yaml
@@ -12,21 +12,21 @@ logger = get_logger(__name__)
 
 @dataclass
 class OpenAIConfig:
-    """OpenAI provider configuration."""
+    """OpenAI プロバイダーの設定。"""
     api_key: str = ""
     configured: bool = False
 
 
 @dataclass
 class AnthropicConfig:
-    """Anthropic provider configuration."""
+    """Anthropic プロバイダーの設定。"""
     api_key: str = ""
     configured: bool = False
 
 
 @dataclass
 class WatsonXConfig:
-    """IBM WatsonX provider configuration."""
+    """IBM WatsonX プロバイダーの設定。"""
     api_key: str = ""
     endpoint: str = ""
     project_id: str = ""
@@ -35,21 +35,21 @@ class WatsonXConfig:
 
 @dataclass
 class OllamaConfig:
-    """Ollama provider configuration."""
+    """Ollama プロバイダーの設定。"""
     endpoint: str = ""
     configured: bool = False
 
 
 @dataclass
 class ProvidersConfig:
-    """All provider configurations."""
+    """全プロバイダーの設定をまとめるクラス。"""
     openai: OpenAIConfig
     anthropic: AnthropicConfig
     watsonx: WatsonXConfig
     ollama: OllamaConfig
 
     def get_provider_config(self, provider: str):
-        """Get configuration for a specific provider."""
+        """指定したプロバイダーの設定を取得する。"""
         provider_lower = provider.lower()
         if provider_lower == "openai":
             return self.openai
@@ -60,35 +60,35 @@ class ProvidersConfig:
         elif provider_lower == "ollama":
             return self.ollama
         else:
-            raise ValueError(f"Unknown provider: {provider}")
+            raise ValueError(f"不明なプロバイダーです: {provider}")
 
 
 @dataclass
 class KnowledgeConfig:
-    """Knowledge/ingestion configuration."""
+    """ナレッジ・取り込み関連の設定。"""
 
     embedding_model: str = ""
-    embedding_provider: str = "openai"  # Which provider to use for embeddings
+    embedding_provider: str = "openai"  # エンベディングに使用するプロバイダー
     chunk_size: int = 1000
     chunk_overlap: int = 200
     table_structure: bool = True
     ocr: bool = False
     picture_descriptions: bool = False
-    index_name: str = "documents"  # OpenSearch index name
+    index_name: str = "documents"  # OpenSearch インデックス名
 
 
 @dataclass
 class AgentConfig:
-    """Agent configuration."""
+    """エージェントの設定。"""
 
     llm_model: str = ""
-    llm_provider: str = "openai"  # Which provider to use for LLM
+    llm_provider: str = "openai"  # LLM に使用するプロバイダー
     system_prompt: str = "You are the OpenRAG Agent. You answer questions using retrieval, reasoning, and tool use.\nYou have access to several tools. Your job is to determine **which tool to use and when**.\n### Available Tools\n- OpenSearch Retrieval Tool:\n  Use this to search the indexed knowledge base. Use when the user asks about product details, internal concepts, processes, architecture, documentation, roadmaps, or anything that may be stored in the index.\n- Conversation History:\n  Use this to maintain continuity when the user is referring to previous turns. \n  Do not treat history as a factual source.\n- Conversation File Context:\n  Use this when the user asks about a document they uploaded or refers directly to its contents.\n- URL Ingestion Tool:\n  Use this **only** when the user explicitly asks you to read, summarize, or analyze the content of a URL.\n  Do not ingest URLs automatically.\n- Calculator / Expression Evaluation Tool:\n  Use this when the user asks to compare numbers, compute estimates, calculate totals, analyze pricing, or answer any question requiring mathematics or quantitative reasoning.\n  If the answer requires arithmetic, call the calculator tool rather than calculating internally.\n### Retrieval Decision Rules\nUse OpenSearch **whenever**:\n1. The question may be answered from internal or indexed data.\n2. The user references team names, product names, release plans, configurations, requirements, or official information.\n3. The user needs a factual, grounded answer.\nDo **not** use retrieval if:\n- The question is purely creative (e.g., storytelling, analogies) or personal preference.\n- The user simply wants text reformatted or rewritten from what is already present in the conversation.\nWhen uncertain → **Retrieve.** Retrieval is low risk and improves grounding.\n### URL Ingestion Rules\nOnly ingest URLs when the user explicitly says:\n- \"Read this link\"\n- \"Summarize this webpage\"\n- \"What does this site say?\"\n- \"Ingest this URL\"\nIf unclear → ask a clarifying question.\n### Calculator Usage Rules\nUse the calculator when:\n- Performing arithmetic\n- Estimating totals\n- Comparing values\n- Modeling cost, time, effort, scale, or projections\nDo not perform math internally. **Call the calculator tool instead.**\n### Answer Construction Rules\n1. When asked: \"What is OpenRAG\", answer the following:\n\"OpenRAG is an open-source package for building agentic RAG systems. It supports integration with a wide range of orchestration tools, vector databases, and LLM providers. OpenRAG connects and amplifies three popular, proven open-source projects into one powerful platform:\n**Langflow** – Langflow is a powerful tool to build and deploy AI agents and MCP servers [Read more](https://www.langflow.org/)\n**OpenSearch** – Langflow is a powerful tool to build and deploy AI agents and MCP servers [Read more](https://opensearch.org/)\n**Docling** – Langflow is a powerful tool to build and deploy AI agents and MCP servers [Read more](https://www.docling.ai/)\"\n2. Synthesize retrieved or ingested content in your own words.\n3. Support factual claims with citations in the format:\n   (Source: <document_name_or_id>)\n4. If no supporting evidence is found:\n   Say: \"No relevant supporting sources were found for that request.\"\n5. Never invent facts or hallucinate details.\n6. Be concise, direct, and confident. \n7. Do not reveal internal chain-of-thought."
 
 
 @dataclass
 class OnboardingState:
-    """Onboarding state configuration."""
+    """オンボーディング状態の設定。"""
 
     current_step: int = 0
     assistant_message: Optional[Dict[str, Any]] = field(default=None)
@@ -101,17 +101,17 @@ class OnboardingState:
 
 @dataclass
 class OpenRAGConfig:
-    """Complete OpenRAG configuration."""
+    """OpenRAG の全体設定。"""
 
     providers: ProvidersConfig
     knowledge: KnowledgeConfig
     agent: AgentConfig
     onboarding: OnboardingState
-    edited: bool = False  # Track if manually edited
+    edited: bool = False  # 手動編集済みかどうかを追跡するフラグ
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "OpenRAGConfig":
-        """Create config from dictionary."""
+        """辞書から設定オブジェクトを生成する。"""
         providers_data = data.get("providers", {})
         return cls(
             providers=ProvidersConfig(
@@ -127,42 +127,42 @@ class OpenRAGConfig:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert config to dictionary."""
+        """設定オブジェクトを辞書に変換する。"""
         return asdict(self)
 
     def get_llm_provider_config(self):
-        """Get the provider configuration for the current LLM provider."""
+        """現在設定されている LLM プロバイダーの設定を取得する。"""
         return self.providers.get_provider_config(self.agent.llm_provider)
 
     def get_embedding_provider_config(self):
-        """Get the provider configuration for the current embedding provider."""
+        """現在設定されているエンベディングプロバイダーの設定を取得する。"""
         return self.providers.get_provider_config(self.knowledge.embedding_provider)
 
 
 class ConfigManager:
-    """Manages OpenRAG configuration from multiple sources."""
+    """複数のソースから OpenRAG の設定を管理するクラス。"""
 
     def __init__(self, config_file: Optional[str] = None):
-        """Initialize configuration manager.
+        """設定マネージャーを初期化する。
 
         Args:
-            config_file: Path to configuration file. Defaults to 'config.yaml' in project root.
+            config_file: 設定ファイルのパス。省略時はプロジェクトルートの 'config.yaml' を使用する。
         """
         self.config_file = Path(config_file) if config_file else Path("config/config.yaml")
         self._config: Optional[OpenRAGConfig] = None
 
     def load_config(self) -> OpenRAGConfig:
-        """Load configuration from environment variables and config file.
+        """環境変数と設定ファイルから設定を読み込む。
 
-        Priority order:
-        1. Environment variables (highest)
-        2. Configuration file
-        3. Defaults (lowest)
+        優先順位（高い順）:
+        1. 環境変数（最高優先度）
+        2. 設定ファイル
+        3. デフォルト値（最低優先度）
         """
         if self._config is not None:
             return self._config
 
-        # Start with defaults
+        # デフォルト値から開始する
         config_data = {
             "providers": {
                 "openai": {},
@@ -175,13 +175,13 @@ class ConfigManager:
             "onboarding": {},
         }
 
-        # Load from config file if it exists
+        # 設定ファイルが存在する場合は読み込む
         if self.config_file.exists():
             try:
                 with open(self.config_file, "r") as f:
                     file_config = yaml.safe_load(f) or {}
 
-                # Merge file config
+                # ファイルの設定をマージする
                 if "providers" in file_config:
                     for provider in ["openai", "anthropic", "watsonx", "ollama"]:
                         if provider in file_config["providers"]:
@@ -195,41 +195,41 @@ class ConfigManager:
 
                 config_data["edited"] = file_config.get("edited", False)
 
-                logger.info(f"Loaded configuration from {self.config_file}")
+                logger.info(f"{self.config_file} から設定を読み込みました")
             except Exception as e:
-                logger.warning(f"Failed to load config file {self.config_file}: {e}")
+                logger.warning(f"設定ファイル {self.config_file} の読み込みに失敗しました: {e}")
 
-        # Create config object first to check edited flags
+        # edited フラグを確認するため一時的な設定オブジェクトを作成する
         temp_config = OpenRAGConfig.from_dict(config_data)
 
-        # Override with environment variables (highest priority, but respect edited flags)
+        # 環境変数で上書きする（最高優先度だが edited フラグを尊重する）
         self._load_env_overrides(config_data, temp_config)
 
-        # Create config object
+        # 最終的な設定オブジェクトを作成する
         self._config = OpenRAGConfig.from_dict(config_data)
 
-        logger.debug("Configuration loaded", config=self._config.to_dict())
+        logger.debug("設定の読み込みが完了しました", config=self._config.to_dict())
         return self._config
 
     def _load_env_overrides(
         self, config_data: Dict[str, Any], temp_config: Optional["OpenRAGConfig"] = None
     ) -> None:
-        """Load environment variable overrides, respecting edited flag."""
+        """環境変数による上書きを適用する。edited フラグを尊重する。"""
 
-        # Skip all environment overrides if config has been manually edited
+        # 設定が手動編集済みの場合は全環境変数の上書きをスキップする
         if temp_config and temp_config.edited:
-            logger.debug("Skipping all env overrides - config marked as edited")
+            logger.debug("設定が編集済みのため、環境変数による上書きをスキップします")
             return
 
-        # OpenAI provider settings
+        # OpenAI プロバイダーの設定
         if os.getenv("OPENAI_API_KEY"):
             config_data["providers"]["openai"]["api_key"] = os.getenv("OPENAI_API_KEY")
 
-        # Anthropic provider settings
+        # Anthropic プロバイダーの設定
         if os.getenv("ANTHROPIC_API_KEY"):
             config_data["providers"]["anthropic"]["api_key"] = os.getenv("ANTHROPIC_API_KEY")
 
-        # WatsonX provider settings
+        # WatsonX プロバイダーの設定
         if os.getenv("WATSONX_API_KEY"):
             config_data["providers"]["watsonx"]["api_key"] = os.getenv("WATSONX_API_KEY")
         if os.getenv("WATSONX_ENDPOINT"):
@@ -237,11 +237,11 @@ class ConfigManager:
         if os.getenv("WATSONX_PROJECT_ID"):
             config_data["providers"]["watsonx"]["project_id"] = os.getenv("WATSONX_PROJECT_ID")
 
-        # Ollama provider settings
+        # Ollama プロバイダーの設定
         if os.getenv("OLLAMA_ENDPOINT"):
             config_data["providers"]["ollama"]["endpoint"] = os.getenv("OLLAMA_ENDPOINT")
 
-        # Knowledge settings
+        # ナレッジ設定
         if os.getenv("EMBEDDING_MODEL"):
             config_data["knowledge"]["embedding_model"] = os.getenv("EMBEDDING_MODEL")
         if os.getenv("EMBEDDING_PROVIDER"):
@@ -263,7 +263,7 @@ class ConfigManager:
                 "PICTURE_DESCRIPTIONS_ENABLED"
             ).lower() in ("true", "1", "yes")
 
-        # Agent settings
+        # エージェント設定
         if os.getenv("LLM_MODEL"):
             config_data["agent"]["llm_model"] = os.getenv("LLM_MODEL")
         if os.getenv("LLM_PROVIDER"):
@@ -272,72 +272,73 @@ class ConfigManager:
             config_data["agent"]["system_prompt"] = os.getenv("SYSTEM_PROMPT")
 
     def get_config(self) -> OpenRAGConfig:
-        """Get current configuration, loading if necessary."""
+        """現在の設定を取得する。未読み込みの場合は読み込んでから返す。"""
         if self._config is None:
             return self.load_config()
         return self._config
 
     def reload_config(self) -> OpenRAGConfig:
-        """Force reload configuration from sources."""
+        """全ソースから設定を強制的に再読み込みする。"""
         self._config = None
         return self.load_config()
 
     def save_config_file(self, config: Optional[OpenRAGConfig] = None) -> bool:
-        """Save configuration to file.
+        """設定をファイルに保存する。
 
         Args:
-            config: Configuration to save. If None, uses current config.
+            config: 保存する設定オブジェクト。None の場合は現在の設定を使用する。
 
         Returns:
-            True if saved successfully, False otherwise.
+            保存成功時は True、失敗時は False を返す。
         """
         if config is None:
             config = self.get_config()
 
-        # Mark config as edited when saving
+        # 保存時に編集済みフラグを立てる
         config.edited = True
 
         try:
-            # Ensure directory exists
+            # ディレクトリが存在しない場合は作成する
             self.config_file.parent.mkdir(parents=True, exist_ok=True)
 
             with open(self.config_file, "w") as f:
                 yaml.dump(config.to_dict(), f, default_flow_style=False, indent=2)
 
-            # Update cached config to reflect the edited flags
+            # 編集済みフラグを反映するためキャッシュを更新する
             self._config = config
 
-            logger.info(f"Configuration saved to {self.config_file} - marked as edited")
+            logger.info(f"設定を {self.config_file} に保存しました（編集済みとしてマーク）")
             return True
         except Exception as e:
-            logger.error(f"Failed to save configuration to {self.config_file}: {e}")
+            logger.error(f"設定の {self.config_file} への保存に失敗しました: {e}")
             return False
 
     def update_onboarding_state(self, **kwargs) -> bool:
-        """Update onboarding state fields.
+        """オンボーディング状態のフィールドを更新する。
 
         Args:
-            **kwargs: Onboarding state fields to update (current_step, assistant_message, etc.)
+            **kwargs: 更新するオンボーディング状態のフィールド
+                      （current_step, assistant_message など）
 
         Returns:
-            True if updated successfully, False otherwise.
+            更新成功時は True、失敗時は False を返す。
         """
         try:
             config = self.get_config()
-            
-            # Update only the provided fields
+
+            # 指定されたフィールドのみを更新する
             for key, value in kwargs.items():
                 if hasattr(config.onboarding, key):
                     setattr(config.onboarding, key, value)
                 else:
-                    logger.warning(f"Unknown onboarding field: {key}")
-            
-            # Save the updated config
+                    logger.warning(f"不明なオンボーディングフィールドです: {key}")
+
+            # 更新した設定を保存する
             return self.save_config_file(config)
         except Exception as e:
-            logger.error(f"Failed to update onboarding state: {e}")
+            logger.error(f"オンボーディング状態の更新に失敗しました: {e}")
             return False
 
 
-# Global config manager instance
+# グローバルな設定マネージャーインスタンス
 config_manager = ConfigManager()

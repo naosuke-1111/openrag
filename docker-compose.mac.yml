@@ -1,0 +1,44 @@
+# macOS (Apple Silicon / ARM64) development override
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.mac.yml up -d
+#   または Makefile ターゲット:
+#   make dev-mac
+#   make dev-local-mac
+#
+# このファイルは以下を行います:
+#   1. すべてのサービスを linux/arm64 プラットフォームに固定する
+#   2. GPU リソース設定を除去する（docker-compose.gpu.yml は使わない）
+#   3. macOS では不要な SELinux ボリュームラベル (":Z", ":U,z") を削除する
+#   4. ホスト側のコンテナ間 DNS を host.docker.internal に向ける
+
+services:
+  opensearch:
+    platform: linux/arm64
+    # macOS では SELinux ラベル不要
+    volumes:
+      - ${OPENSEARCH_DATA_PATH:-./opensearch-data}:/usr/share/opensearch/data
+
+  dashboards:
+    platform: linux/arm64
+
+  openrag-backend:
+    platform: linux/arm64
+    build:
+      context: .
+      # 軽量開発用 Dockerfile（モデル事前ダウンロードなし、ARM64 対応ライブラリ含む）
+      dockerfile: Dockerfile.backend.dev
+    volumes:
+      - ${OPENRAG_DOCUMENTS_PATH:-./openrag-documents}:/app/openrag-documents
+      - ${OPENRAG_KEYS_PATH:-./keys}:/app/keys
+      - ${OPENRAG_FLOWS_PATH:-./flows}:/app/flows
+      - ${OPENRAG_CONFIG_PATH:-./config}:/app/config
+      - ${OPENRAG_DATA_PATH:-./data}:/app/data
+
+  openrag-frontend:
+    platform: linux/arm64
+
+  langflow:
+    platform: linux/arm64
+    volumes:
+      - ${OPENRAG_FLOWS_PATH:-./flows}:/app/flows

@@ -370,14 +370,14 @@ def clean_box_document(doc: ConnectorDocument) -> list[BoxChunk]:
 
 #### Step 3: enrich
 
-watsonx.ai Granite モデルを利用し、以下を並列実行。ニュース・Box文書共通の処理。
+OpenAI GPT モデルを利用し、以下を並列実行。ニュース・Box文書共通の処理。
 
 | 処理 | モデル | 出力 |
 |---|---|---|
-| 要約 | `ibm/granite-13b-instruct-v2` | `summary` |
-| センチメント分析 | `ibm/granite-13b-instruct-v2` | `sentiment_label`, `sentiment_score` |
-| エンティティ抽出 | `ibm/granite-13b-instruct-v2` | `entities` |
-| トピック分類 | `ibm/granite-13b-instruct-v2` | `topic` |
+| 要約 | `openai/gpt-oss-120b` | `summary` |
+| センチメント分析 | `openai/gpt-oss-120b` | `sentiment_label`, `sentiment_score` |
+| エンティティ抽出 | `openai/gpt-oss-120b` | `entities` |
+| トピック分類 | `openai/gpt-oss-120b` | `topic` |
 
 Box文書はチャンク単位でエンリッチメントを実行する（センチメント分析は省略可）。
 
@@ -397,7 +397,7 @@ texts += [chunk.clean_text for chunk in box_chunks]
 batches = chunk_texts_for_embeddings(texts, max_tokens=8192)
 ```
 
-Embedding モデル: `ibm/granite-embedding-125m-english`（watsonx.ai）
+Embedding モデル: `ibm/granite-embedding-107m-multilingual`（watsonx.ai）
 
 #### Step 5: index
 
@@ -593,8 +593,8 @@ BOX_TOKEN_FILE          = os.getenv("BOX_TOKEN_FILE", "box_token.json")
 WATSONX_AI_URL            = os.getenv("WATSONX_AI_URL", "https://us-south.ml.cloud.ibm.com")
 WATSONX_API_KEY           = os.getenv("WATSONX_API_KEY", "")
 WATSONX_PROJECT_ID        = os.getenv("WATSONX_PROJECT_ID", "")
-WATSON_NEWS_ENRICH_MODEL  = os.getenv("WATSON_NEWS_ENRICH_MODEL", "ibm/granite-13b-instruct-v2")
-WATSON_NEWS_EMBED_MODEL   = os.getenv("WATSON_NEWS_EMBED_MODEL", "ibm/granite-embedding-125m-english")
+WATSON_NEWS_ENRICH_MODEL  = os.getenv("WATSON_NEWS_ENRICH_MODEL", "openai/gpt-oss-120b")
+WATSON_NEWS_EMBED_MODEL   = os.getenv("WATSON_NEWS_EMBED_MODEL", "ibm/granite-embedding-107m-multilingual")
 ```
 
 `.env.example` に上記変数を追記する。

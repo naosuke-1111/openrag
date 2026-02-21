@@ -62,6 +62,7 @@ from api_key_middleware import require_api_key
 from services.api_key_service import APIKeyService
 from api import keys as api_keys
 from api.v1 import chat as v1_chat, search as v1_search, documents as v1_documents, settings as v1_settings, models as v1_models, knowledge_filters as v1_knowledge_filters
+from api.watson_news import routes as watson_news_routes
 
 # Configuration and setup
 from config.settings import (
@@ -631,6 +632,14 @@ async def startup_tasks(services):
         logger.error(f"Failed to check flows reset or reapply settings: {str(e)}")
         await TelemetryClient.send_event(Category.FLOW_OPERATIONS, MessageId.ORB_FLOW_RESET_CHECK_FAIL)
         # Don't fail startup if this check fails
+
+    # Initialize Watson News OpenSearch indices (non-blocking)
+    try:
+        from services.watson_news_service import ensure_indices
+        await ensure_indices()
+        logger.info("Watson News OpenSearch indices ensured")
+    except Exception as exc:
+        logger.warning("Watson News index initialization failed (non-fatal)", error=str(exc))
 
 
 async def initialize_services():
@@ -1582,6 +1591,49 @@ async def create_app():
             ),
             methods=["DELETE"],
         ),
+        # ----------------------------------------------------------------
+        # Watson News API endpoints
+        # ----------------------------------------------------------------
+        Route(
+            "/api/watson-news/articles",
+            watson_news_routes.get_articles,
+            methods=["GET"],
+        ),
+        Route(
+            "/api/watson-news/articles/{id}",
+            watson_news_routes.get_article_detail,
+            methods=["GET"],
+        ),
+        Route(
+            "/api/watson-news/search",
+            watson_news_routes.search_articles,
+            methods=["POST"],
+        ),
+        Route(
+            "/api/watson-news/box/files",
+            watson_news_routes.get_box_files,
+            methods=["GET"],
+        ),
+        Route(
+            "/api/watson-news/box/files/{file_id}",
+            watson_news_routes.get_box_file_detail,
+            methods=["GET"],
+        ),
+        Route(
+            "/api/watson-news/trends",
+            watson_news_routes.get_trend_data,
+            methods=["GET"],
+        ),
+        Route(
+            "/api/watson-news/etl/status",
+            watson_news_routes.etl_status,
+            methods=["GET"],
+        ),
+        Route(
+            "/api/watson-news/etl/trigger",
+            watson_news_routes.etl_trigger,
+            methods=["POST"],
+        ),
     ]
 
     app = Starlette(debug=True, routes=routes)
@@ -1599,6 +1651,14 @@ async def create_app():
 
         # Start periodic task cleanup scheduler
         services["task_service"].start_cleanup_scheduler()
+
+        # Start Watson News ETL scheduler
+        try:
+            from connectors.watson_news.scheduler import start_scheduler
+            start_scheduler()
+            logger.info("Watson News ETL scheduler started")
+        except Exception as exc:
+            logger.warning("Watson News scheduler could not start (non-fatal)", error=str(exc))
 
         # Start periodic flow backup task (every 5 minutes)
         async def periodic_backup():
@@ -1646,6 +1706,12 @@ async def create_app():
         await cleanup_subscriptions_proper(services)
         # Cleanup task service (cancels background tasks and process pool)
         await services["task_service"].shutdown()
+        # Stop Watson News ETL scheduler
+        try:
+            from connectors.watson_news.scheduler import stop_scheduler
+            stop_scheduler()
+        except Exception:
+            pass
         # Cleanup async clients
         await clients.cleanup()
         # Cleanup telemetry client

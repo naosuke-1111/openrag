@@ -1,0 +1,100 @@
+# IBM公式サイト クロール対象設定ファイル
+#
+# 使い方:
+#   - サイトを追加する場合: targets リストに新しいエントリを追記する
+#   - サイトを一時停止する場合: enabled: false に変更する
+#   - クロール頻度を変更する場合: interval_hours を変更する
+#
+# デフォルト設定 (defaults) はすべてのターゲットに適用される。
+# ターゲットごとに同じキーを書くとデフォルトを上書きできる。
+#
+# 設定パスの解決:
+#   WATSON_NEWS_CRAWL_CONFIG 環境変数で上書き可能。未設定時は
+#   このファイルをデフォルトとして使用する。
+
+defaults:
+  # robots.txt を遵守するか（必ず true を維持すること）
+  respect_robots_txt: true
+  # リクエスト間の最小待機秒数
+  request_interval_seconds: 5
+  # 1回のクロールで取得する最大記事数（0 = 無制限）
+  max_articles_per_run: 100
+  # タイムアウト（秒）
+  request_timeout_seconds: 30
+  # リトライ回数
+  max_retries: 3
+  # 有効化フラグ
+  enabled: true
+
+targets:
+  - name: ibm_announcements
+    display_name: "IBM Announcements"
+    index_url: "https://www.ibm.com/new/announcements"
+    language: "en"
+    site_category: "announcements"
+    interval_hours: 2
+    # article_link_selector: インデックスページから記事リンクを抽出する CSS セレクタ
+    # null の場合はデフォルトの汎用抽出ロジックを使用する
+    article_link_selector: null
+
+  - name: ibm_research_blog
+    display_name: "IBM Research Blog"
+    index_url: "https://research.ibm.com/blog"
+    language: "en"
+    site_category: "research"
+    interval_hours: 4
+    article_link_selector: null
+
+  - name: ibm_newsroom
+    display_name: "IBM Newsroom Announcements"
+    index_url: "https://newsroom.ibm.com/announcements"
+    language: "en"
+    site_category: "newsroom"
+    interval_hours: 2
+    article_link_selector: null
+
+  - name: ibm_annual_report
+    display_name: "IBM Annual Report"
+    index_url: "https://www.ibm.com/investor/services/annual-report"
+    language: "en"
+    site_category: "annual_report"
+    interval_hours: 24
+    # 年次報告は更新頻度が低いため、1ページあたりの取得上限を小さくする
+    max_articles_per_run: 20
+    article_link_selector: null
+
+  - name: ibm_case_studies_en
+    display_name: "IBM Case Studies (English)"
+    index_url: "https://www.ibm.com/case-studies?lnk=flatitem"
+    language: "en"
+    site_category: "case_study"
+    interval_hours: 24
+    article_link_selector: null
+
+  - name: ibm_think_insights_jp
+    display_name: "IBM Think Insights (日本語)"
+    index_url: "https://www.ibm.com/jp-ja/think/insights"
+    language: "ja"
+    site_category: "insights"
+    interval_hours: 4
+    article_link_selector: null
+
+  - name: ibm_case_studies_jp
+    display_name: "IBM Case Studies (日本語)"
+    index_url: "https://www.ibm.com/case-studies/jp-ja/"
+    language: "ja"
+    site_category: "case_study"
+    interval_hours: 24
+    article_link_selector: null
+
+# ─────────────────────────────────────────────────────────────────
+# 追加サイトの記載例（enabled: false にしておくとスキップされる）
+# ─────────────────────────────────────────────────────────────────
+#  - name: ibm_security_intelligence
+#    display_name: "IBM Security Intelligence"
+#    index_url: "https://securityintelligence.com"
+#    language: "en"
+#    site_category: "security"
+#    interval_hours: 6
+#    enabled: false
+#    article_link_selector: "a.article-link"

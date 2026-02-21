@@ -120,55 +120,85 @@ class GdeltConnector(BaseConnector):
 
 RSS は存在しないため、**インデックスページを巡回して新規URLを検出**する方式を採用する。
 
-#### クロール対象サイトと設定
+#### クロール対象サイト — 設定ファイルで管理
+
+クロール対象は **`watson-news/ibm_crawl_targets.yaml`** に集約する。
+サイトの追加・削除・頻度変更はコードを触らずこのファイルだけで完結する。
+
+```yaml
+# watson-news/ibm_crawl_targets.yaml（抜粋）
+defaults:
+  respect_robots_txt: true
+  request_interval_seconds: 5
+  max_articles_per_run: 100
+  request_timeout_seconds: 30
+  max_retries: 3
+  enabled: true
+
+targets:
+  - name: ibm_announcements
+    index_url: "https://www.ibm.com/new/announcements"
+    language: "en"
+    site_category: "announcements"
+    interval_hours: 2
+  # ... 全7サイト定義済み（watson-news/ibm_crawl_targets.yaml 参照）
+```
+
+**設定ファイルのロード:**
 
 ```python
 # src/connectors/watson_news/ibm_crawl_connector.py
-IBM_CRAWL_TARGETS = [
-    {
-        "name": "announcements",
-        "index_url": "https://www.ibm.com/new/announcements",
-        "language": "en",
-        "interval_hours": 2,
-    },
-    {
-        "name": "research_blog",
-        "index_url": "https://research.ibm.com/blog",
-        "language": "en",
-        "interval_hours": 4,
-    },
-    {
-        "name": "newsroom",
-        "index_url": "https://newsroom.ibm.com/announcements",
-        "language": "en",
-        "interval_hours": 2,
-    },
-    {
-        "name": "annual_report",
-        "index_url": "https://www.ibm.com/investor/services/annual-report",
-        "language": "en",
-        "interval_hours": 24,
-    },
-    {
-        "name": "case_studies_en",
-        "index_url": "https://www.ibm.com/case-studies?lnk=flatitem",
-        "language": "en",
-        "interval_hours": 24,
-    },
-    {
-        "name": "think_insights_jp",
-        "index_url": "https://www.ibm.com/jp-ja/think/insights",
-        "language": "ja",
-        "interval_hours": 4,
-    },
-    {
-        "name": "case_studies_jp",
-        "index_url": "https://www.ibm.com/case-studies/jp-ja/",
-        "language": "ja",
-        "interval_hours": 24,
-    },
-]
+import os
+import yaml
+from pathlib import Path
+from dataclasses import dataclass
+
+@dataclass
+class CrawlTarget:
+    name: str
+    index_url: str
+    language: str
+    site_category: str
+    interval_hours: int
+    display_name: str = ""
+    enabled: bool = True
+    respect_robots_txt: bool = True
+    request_interval_seconds: int = 5
+    max_articles_per_run: int = 100
+    request_timeout_seconds: int = 30
+    max_retries: int = 3
+    article_link_selector: str | None = None
+
+def load_crawl_targets(config_path: str | None = None) -> list[CrawlTarget]:
+    """
+    YAML 設定ファイルからクロール対象リストを読み込む。
+    config_path が None の場合は環境変数 WATSON_NEWS_CRAWL_CONFIG を参照し、
+    それも未設定であれば watson-news/ibm_crawl_targets.yaml をデフォルトとして使用する。
+    """
+    if config_path is None:
+        config_path = os.getenv(
+            "WATSON_NEWS_CRAWL_CONFIG",
+            str(Path(__file__).parents[3] / "watson-news" / "ibm_crawl_targets.yaml"),
+        )
+    with open(config_path) as f:
+        raw = yaml.safe_load(f)
+
+    defaults = raw.get("defaults", {})
+    targets = []
+    for item in raw.get("targets", []):
+        merged = {**defaults, **item}   # ターゲット固有値がデフォルトを上書き
+        target = CrawlTarget(**{
+            k: merged[k] for k in CrawlTarget.__dataclass_fields__ if k in merged
+        })
+        if target.enabled:
+            targets.append(target)
+    return targets
 ```
+
+**サイトを追加するときの手順（コード変更不要）:**
+
+1. `watson-news/ibm_crawl_targets.yaml` の `targets:` リストに新エントリを追記する
+2. アプリを再起動する（or スケジューラが次回実行時に自動反映）
 
 #### 差分検知ロジック
 
@@ -379,19 +409,31 @@ OpenSearch の各インデックスへ upsert（`_id` = UUID）。
 ### 3.5 スケジューラ
 
 `APScheduler` で定期実行を管理する（既存の `task_service.py` パターンに合わせる）。
+IBM クローラのジョブは **`ibm_crawl_targets.yaml` から動的に生成**するため、
+設定ファイルにサイトを追加するだけでスケジューラに自動登録される。
 
 ```python
 # scheduler.py
-scheduler.add_job(fetch_gdelt,            "interval", minutes=15)
-scheduler.add_job(crawl_announcements,    "interval", hours=2)
-scheduler.add_job(crawl_research_blog,    "interval", hours=4)
-scheduler.add_job(crawl_newsroom,         "interval", hours=2)
-scheduler.add_job(crawl_annual_report,    "interval", hours=24)
-scheduler.add_job(crawl_case_studies_en,  "interval", hours=24)
-scheduler.add_job(crawl_think_insights_jp,"interval", hours=4)
-scheduler.add_job(crawl_case_studies_jp,  "interval", hours=24)
-scheduler.add_job(fetch_box_diff,         "interval", hours=1)
-scheduler.add_job(run_clean_enrich_embed, "interval", hours=1)
+from connectors.watson_news.ibm_crawl_connector import load_crawl_targets, crawl_target
+
+def register_jobs(scheduler):
+    # GDELT は固定間隔
+    scheduler.add_job(fetch_gdelt, "interval", minutes=15)
+
+    # IBM クローラ: 設定ファイルから対象を読み込んでジョブを動的生成
+    for target in load_crawl_targets():
+        scheduler.add_job(
+            crawl_target,
+            "interval",
+            hours=target.interval_hours,
+            kwargs={"target": target},
+            id=f"crawl_{target.name}",
+            replace_existing=True,
+        )
+
+    # Box 差分取得・クリーニング/エンリッチ/インデックスは固定
+    scheduler.add_job(fetch_box_diff,         "interval", hours=1)
+    scheduler.add_job(run_clean_enrich_embed, "interval", hours=1)
 ```
 
 ---
@@ -536,7 +578,9 @@ GDELT_QUERY_KEYWORD   = os.getenv("GDELT_QUERY_KEYWORD", "IBM")
 GDELT_MAX_RECORDS     = int(os.getenv("GDELT_MAX_RECORDS", "250"))
 
 # Watson News — IBM公式サイト クローラ
-IBM_CRAWL_INTERVAL_SECONDS = int(os.getenv("IBM_CRAWL_INTERVAL_SECONDS", "5"))
+# クロール対象は YAML 設定ファイルで管理（watson-news/ibm_crawl_targets.yaml）
+# 別ファイルを使いたい場合は絶対パスを指定する
+WATSON_NEWS_CRAWL_CONFIG   = os.getenv("WATSON_NEWS_CRAWL_CONFIG", "")  # 未設定時はデフォルトパス
 IBM_CRAWL_USER_AGENT       = os.getenv("IBM_CRAWL_USER_AGENT", "WatsonNewsBot/1.0")
 
 # Watson News — Box

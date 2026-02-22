@@ -63,6 +63,7 @@ from services.api_key_service import APIKeyService
 from api import keys as api_keys
 from api.v1 import chat as v1_chat, search as v1_search, documents as v1_documents, settings as v1_settings, models as v1_models, knowledge_filters as v1_knowledge_filters
 from api.watson_news import routes as watson_news_routes
+from api.neural_feed import routes as neural_feed_routes
 
 # 設定とセットアップ
 from config.settings import (
@@ -1632,6 +1633,39 @@ async def create_app():
             "/api/watson-news/etl/trigger",
             watson_news_routes.etl_trigger,
             methods=["POST"],
+        ),
+        # ----------------------------------------------------------------
+        # Neural Feed API エンドポイント (LED visualization app)
+        # ----------------------------------------------------------------
+        Route(
+            "/api/neural-feed/articles/stream",
+            neural_feed_routes.stream_articles,
+            methods=["GET"],
+        ),
+        Route(
+            "/api/neural-feed/articles/recent",
+            neural_feed_routes.get_recent_articles,
+            methods=["GET"],
+        ),
+        Route(
+            "/api/neural-feed/kpi",
+            neural_feed_routes.get_kpi,
+            methods=["GET"],
+        ),
+        Route(
+            "/api/neural-feed/categories",
+            neural_feed_routes.get_categories,
+            methods=["GET"],
+        ),
+        Route(
+            "/api/neural-feed/tone",
+            neural_feed_routes.get_tone,
+            methods=["GET"],
+        ),
+        Route(
+            "/api/neural-feed/entities/top",
+            neural_feed_routes.get_top_entities,
+            methods=["GET"],
         ),
     ]
 

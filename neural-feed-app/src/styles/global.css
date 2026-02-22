@@ -1,0 +1,185 @@
+/* =====================================================================
+   NEURAL FEED — Global CSS
+   7680×2160px LED screen application
+   ===================================================================== */
+
+:root {
+  /* Base */
+  --color-bg: #000000;
+  --color-surface: #080810;
+  --color-surface-2: #0d0d1a;
+  --color-border: rgba(255, 255, 255, 0.06);
+
+  /* IBM Brand */
+  --color-blue: #0f62fe;
+  --color-blue-light: #33b1ff;
+  --color-cyan: #1192e8;
+  --color-cyan-light: #82cfff;
+  --color-green: #42be65;
+  --color-orange: #ff832b;
+  --color-red: #fa4d56;
+  --color-red-dark: #da1e28;
+  --color-purple: #d4bbff;
+  --color-yellow: #f1c21b;
+  --color-white: #ffffff;
+  --color-gray: #8d8d8d;
+  --color-gray-dark: #393939;
+
+  /* Cluster colors */
+  --cluster-input: #6fdc8c;
+  --cluster-parse: #82cfff;
+  --cluster-sentiment: #ffafd2;
+  --cluster-topic: #d4bbff;
+  --cluster-entity: #ffd6a5;
+  --cluster-conflict: #ff8389;
+  --cluster-output: #ffffff;
+  --cluster-hub: #0f62fe;
+
+  /* Status colors */
+  --status-done: #42be65;
+  --status-active: #33b1ff;
+  --status-queue: #525252;
+  --status-alert: #ff832b;
+
+  /* Typography */
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+
+  /* Font scale for 7680px screen */
+  --fs-2xs: 18px;
+  --fs-xs:  22px;
+  --fs-sm:  26px;
+  --fs-md:  32px;
+  --fs-lg:  42px;
+  --fs-xl:  56px;
+  --fs-2xl: 80px;
+  --fs-3xl: 120px;
+
+  /* Spacing */
+  --sp-xs: 12px;
+  --sp-sm: 20px;
+  --sp-md: 32px;
+  --sp-lg: 48px;
+  --sp-xl: 64px;
+  --sp-2xl: 96px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 7680px;
+  height: 2160px;
+  overflow: hidden;
+  background: var(--color-bg);
+  font-family: var(--font-mono);
+  color: var(--color-white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ——— Utility classes ——————————————————————————————————————————————— */
+
+.glow-text {
+  text-shadow: 0 0 12px currentColor, 0 0 36px currentColor;
+}
+
+.glow-box {
+  box-shadow: 0 0 20px currentColor, 0 0 60px currentColor;
+}
+
+.scanline {
+  position: relative;
+  overflow: hidden;
+}
+.scanline::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 3px,
+    rgba(0, 0, 0, 0.08) 3px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  pointer-events: none;
+}
+
+/* ——— Falling labels ——————————————————————————————————————————————— */
+
+#falling-labels-container {
+  position: fixed;
+  top: 0;
+  left: 1920px; /* center panel starts here */
+  width: 3840px;
+  height: 2160px;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 30;
+}
+
+.falling-label {
+  position: absolute;
+  top: -80px;
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  pointer-events: none;
+  user-select: none;
+  animation: fall var(--fall-duration, 3s) linear forwards;
+  opacity: 0.9;
+}
+
+@keyframes fall {
+  0%   { transform: translateY(0);      opacity: 0.9; }
+  70%  { opacity: 0.9; }
+  100% { transform: translateY(2240px); opacity: 0; }
+}
+
+/* ——— Panel dividers ————————————————————————————————————————————— */
+
+.panel-divider {
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--color-blue) 20%,
+    var(--color-blue) 80%,
+    transparent
+  );
+  opacity: 0.3;
+  flex-shrink: 0;
+}
+
+/* ——— Pulse animation ——————————————————————————————————————————— */
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1.0; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+@keyframes slide-down {
+  from { transform: translateY(-20px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes scan-line {
+  0%   { top: 0; }
+  100% { top: 100%; }
+}
+
+@keyframes signal-move {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}

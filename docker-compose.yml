@@ -131,6 +131,17 @@ services:
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
 
+  neural-feed:
+    build:
+      context: ./neural-feed-app
+      dockerfile: Dockerfile
+    container_name: neural-feed
+    depends_on:
+      - openrag-backend
+    ports:
+      - "${NEURAL_FEED_PORT:-3100}:80"
+    restart: unless-stopped
+
   langflow:
     volumes:
       - ${OPENRAG_FLOWS_PATH:-./flows}:/app/flows:U,z

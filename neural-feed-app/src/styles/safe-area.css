@@ -1,0 +1,72 @@
+/* =====================================================================
+   Safe Area Control
+   LED screen: 7680×2160px total
+   Dead zone: top 135px + bottom 135px (not visible on LED)
+   Safe content area: 7680×1890px
+   ===================================================================== */
+
+.safe-area-container {
+  width: 7680px;
+  height: 1890px; /* 2160 - 135(top) - 135(bottom) */
+  margin-top: 135px;
+  position: relative;
+  overflow: hidden;
+  z-index: 10;
+}
+
+/* Full bleed background layer — renders behind safe area including dead zones */
+.full-bleed-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 7680px;
+  height: 2160px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Three-panel layout inside safe area */
+.panels-container {
+  display: flex;
+  width: 7680px;
+  height: 1890px;
+  position: relative;
+}
+
+.panel-left {
+  width: 1920px;
+  height: 1890px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 20;
+  padding: var(--sp-lg);
+  background: linear-gradient(
+    90deg,
+    rgba(8, 8, 16, 0.95) 0%,
+    rgba(8, 8, 16, 0.85) 100%
+  );
+  border-right: 1px solid var(--color-border);
+}
+
+.panel-center {
+  width: 3840px;
+  height: 1890px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.panel-right {
+  width: 1920px;
+  height: 1890px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 20;
+  padding: var(--sp-lg);
+  background: linear-gradient(
+    270deg,
+    rgba(8, 8, 16, 0.95) 0%,
+    rgba(8, 8, 16, 0.85) 100%
+  );
+  border-left: 1px solid var(--color-border);
+}

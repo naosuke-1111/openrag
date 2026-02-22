@@ -633,7 +633,220 @@ faster-whisper = ">=1.0"       # Whisper 音声認識（CUDA/CPU 最適化版）
 
 ---
 
-## 10. リスクと対策
+## 10. 認証情報未設定時のスキップ方針
+
+### 10.1 基本方針
+
+各 SNS コネクタは、**必要な認証情報（API キー・トークン）が環境変数に設定されていない場合、そのプラットフォームのクロールを静かにスキップ**する。
+アプリケーション全体を停止させず、他のプラットフォームのクロールは継続する。
+
+- **スキップ = 空リストを返す**（例外を投げない）
+- スキップ発生時は `WARNING` レベルでログを記録する
+- Podcast は公開 RSS フィードのため認証不要 ＝ 常にクロールを実行する
+
+### 10.2 プラットフォームごとの必須環境変数と未設定時の動作
+
+| プラットフォーム | 必須環境変数 | 未設定時の動作 |
+|---|---|---|
+| X (Twitter) | `TWITTER_BEARER_TOKEN` | X クロール全体をスキップ・WARNING ログ |
+| Instagram | `META_APP_ID`, `META_APP_SECRET`, `META_IG_USER_ID_*` | Instagram クロール全体をスキップ・WARNING ログ |
+| Facebook | `META_APP_ID`, `META_PAGE_ACCESS_TOKEN_*` | トークン未設定アカウントのみスキップ・他継続 |
+| YouTube | `YOUTUBE_API_KEY` | YouTube クロール全体をスキップ・WARNING ログ |
+| Podcast | なし（公開 RSS のため不要） | 常に有効（スキップなし） |
+| LinkedIn | `LINKEDIN_ACCESS_TOKEN` | LinkedIn クロールをスキップ（Phase 2・デフォルト無効） |
+
+### 10.3 コネクタ実装パターン
+
+コネクタ初期化時に必要な環境変数を検証し、未設定の場合はコネクタを無効状態としてスキップする。
+
+```python
+# 例: x_connector.py
+class XConnector:
+    PLATFORM = "x"
+
+    def __init__(self) -> None:
+        self._token = os.getenv("TWITTER_BEARER_TOKEN")
+        self.is_enabled = bool(self._token)
+        if not self.is_enabled:
+            logger.warning(
+                "X コネクタをスキップ: TWITTER_BEARER_TOKEN が未設定",
+                connector=self.PLATFORM,
+            )
+
+    async def run(self, accounts: list) -> list[ConnectorDocument]:
+        if not self.is_enabled:
+            return []   # 空リストを返す（例外を投げない）
+        ...
+```
+
+### 10.4 アカウント単位のスキップ（Facebook・Instagram）
+
+Facebook・Instagram はアカウントごとにトークンを管理するため、**トークン未設定のアカウントのみスキップ**し、設定済みのアカウントは継続する。
+
+```python
+# 例: facebook_connector.py
+_ACCOUNT_TOKEN_MAP = {
+    "IBM":            os.getenv("META_PAGE_ACCESS_TOKEN_IBM"),
+    "IBMJapan":       os.getenv("META_PAGE_ACCESS_TOKEN_IBMJP"),
+    "IBMUK":          os.getenv("META_PAGE_ACCESS_TOKEN_IBMUK"),
+    "IBMDeutschland": os.getenv("META_PAGE_ACCESS_TOKEN_IBMDE"),
+}
+
+async def run(self, accounts: list) -> list[ConnectorDocument]:
+    results = []
+    for account in accounts:
+        token = _ACCOUNT_TOKEN_MAP.get(account.id)
+        if not token:
+            logger.warning(
+                "Facebook アカウントをスキップ: トークン未設定",
+                account=account.id,
+            )
+            continue   # このアカウントのみスキップ、他は継続
+        results.extend(await self._fetch_account(account, token))
+    return results
+```
+
+### 10.5 スケジューラへの反映
+
+スケジューラはコネクタの有効・無効状態をジョブ登録時に確認し、**無効コネクタのジョブを登録しない**（ジョブが存在しないためエラーは発生しない）。
+
+```python
+# scheduler.py
+def register_sns_jobs(scheduler: AsyncIOScheduler) -> None:
+    for connector_cls, job_id, hours in [
+        (XConnector,        "sns_x",         4),
+        (FacebookConnector, "sns_facebook",   4),
+        (YouTubeConnector,  "sns_youtube",   24),
+        (PodcastConnector,  "sns_podcast",   24),
+    ]:
+        connector = connector_cls()
+        if connector.is_enabled:
+            scheduler.add_job(connector.run, "interval", hours=hours, id=job_id)
+        else:
+            logger.info(
+                "SNS ジョブをスキップ（認証情報未設定）",
+                job_id=job_id,
+            )
+```
+
+---
+
+## 11. アプリケーション側の耐障害性
+
+### 11.1 基本方針
+
+SNS データが存在しない（インデックスが空・未作成）場合でも、**検索 API・フロントエンドはエラーを返さず、空の結果を正常レスポンスとして返す**。
+
+- OpenSearch の `index_not_found_exception` はサービス層で吸収し HTTP 200 を返す
+- ETL パイプライン内で各コネクタは独立して実行し、1 コネクタの失敗が他に波及しない
+- フロントエンドはデータなし状態を専用 UI で表示する
+
+### 11.2 OpenSearch インデックス未作成への対応
+
+`watson_news_sns` インデックスが存在しない場合、OpenSearch は `NotFoundError` を返す。
+サービス層でハンドリングし、空リストを返す。
+
+```python
+# services/watson_news_service.py
+async def search_sns(query: str, ...) -> dict:
+    try:
+        response = await opensearch.search(index="watson_news_sns", body=...)
+        hits = response["hits"]["hits"]
+        return {
+            "results": hits,
+            "total": len(hits),
+            "platforms_available": _extract_platforms(hits),
+            "message": None,
+        }
+    except NotFoundError:
+        # インデックス未作成 = SNS クロール未実行 → 空を返す
+        logger.info("watson_news_sns インデックスが未作成。SNS データなし。")
+        return _empty_sns_response("SNS データはまだクロールされていません")
+    except Exception as exc:
+        logger.error("SNS 検索エラー", error=str(exc))
+        return _empty_sns_response("SNS データの取得に失敗しました")
+
+
+def _empty_sns_response(message: str) -> dict:
+    return {"results": [], "total": 0, "platforms_available": [], "message": message}
+```
+
+### 11.3 API レスポンスの設計
+
+SNS データが存在しない場合でも **HTTP 200** で空配列を返す。
+
+```json
+// SNS データなし（インデックス未作成 or クロール未実行）
+{
+  "results": [],
+  "total": 0,
+  "platforms_available": [],
+  "message": "SNSデータはまだクロールされていません"
+}
+
+// SNS データあり（一部プラットフォームのみ設定済みの場合も含む）
+{
+  "results": [...],
+  "total": 42,
+  "platforms_available": ["x", "youtube", "podcast"],
+  "message": null
+}
+```
+
+### 11.4 ETL パイプラインの分離実行
+
+各 SNS コネクタはパイプライン内で**独立して実行**する。1 つのコネクタが例外を投げても他は継続する。
+
+```python
+# etl_pipeline.py
+async def run_sns_pipeline() -> None:
+    connectors: list[BaseSnsConnector] = [
+        XConnector(),
+        FacebookConnector(),
+        YouTubeConnector(),
+        PodcastConnector(),
+        # Phase 2 で追加:
+        # InstagramConnector(),
+        # LinkedInConnector(),
+    ]
+    for connector in connectors:
+        try:
+            docs = await connector.run()
+            await index_documents(docs)
+        except Exception as exc:
+            # 1 コネクタの失敗が他に波及しない
+            logger.error(
+                "SNS コネクタ実行エラー（スキップして継続）",
+                connector=connector.PLATFORM,
+                error=str(exc),
+            )
+            continue
+```
+
+### 11.5 フロントエンドの対応
+
+- SNS フィードコンポーネントは `results` が空配列のとき「データなし」プレースホルダーを表示する
+- `platforms_available` が空のとき「SNS 連携が設定されていません」メッセージを表示する
+- SNS タブは**常に表示**する（非表示にしない）。設定促進のためデータなし状態を明示する
+
+```tsx
+// 例: SNS フィードコンポーネント (Watson News UI)
+function SnsFeed({ data }: { data: SnsSearchResponse }) {
+  if (data.total === 0) {
+    return (
+      <EmptyState
+        title="SNS データなし"
+        description={data.message ?? "SNS クロールの設定を確認してください"}
+      />
+    );
+  }
+  return <PostList posts={data.results} />;
+}
+```
+
+---
+
+## 12. リスクと対策
 
 | リスク | 影響度 | 対策 |
 |---|---|---|
@@ -648,7 +861,7 @@ faster-whisper = ">=1.0"       # Whisper 音声認識（CUDA/CPU 最適化版）
 
 ---
 
-## 11. 実装フェーズ
+## 13. 実装フェーズ
 
 ### Phase 1（優先実装）
 
@@ -672,7 +885,7 @@ faster-whisper = ">=1.0"       # Whisper 音声認識（CUDA/CPU 最適化版）
 
 ---
 
-## 12. 参照ドキュメント
+## 14. 参照ドキュメント
 
 - [Twitter API v2 ドキュメント](https://developer.twitter.com/en/docs/twitter-api)
 - [Instagram Graph API ドキュメント](https://developers.facebook.com/docs/instagram-api)

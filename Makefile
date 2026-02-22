@@ -68,7 +68,7 @@ endef
 # PHONY TARGETS
 ######################
 .PHONY: help check_tools help_docker help_dev help_test help_local help_utils \
-       dev dev-cpu dev-local dev-local-cpu stop clean build logs \
+       dev dev-cpu dev-local dev-local-cpu dev-mac dev-local-mac stop clean build logs \
        shell-backend shell-frontend install \
        test test-integration test-ci test-ci-local test-sdk test-os-jwt lint \
        backend frontend docling docling-stop install-be install-fe build-be build-fe build-os build-lf logs-be logs-fe logs-lf logs-os \
@@ -166,12 +166,14 @@ help_dev: ## Show development environment commands
 	@echo "$(PURPLE)Full Stack Development:$(NC)"
 	@echo "  $(PURPLE)make dev$(NC)             - Start full stack with GPU support ($(COMPOSE_CMD))"
 	@echo "  $(PURPLE)make dev-cpu$(NC)         - Start full stack with CPU only"
+	@echo "  $(PURPLE)make dev-mac$(NC)         - Start full stack for macOS Apple Silicon (ARM64, no GPU)"
 	@echo "  $(PURPLE)make stop$(NC)            - Stop and remove all OpenRAG containers"
 	@echo "  $(PURPLE)make restart$(NC)         - Restart all containers"
 	@echo ''
 	@echo "$(PURPLE)Infrastructure Only:$(NC)"
 	@echo "  $(PURPLE)make dev-local$(NC)       - Start infrastructure only (for local backend/frontend)"
 	@echo "  $(PURPLE)make dev-local-cpu$(NC)   - Start infrastructure for local backend/frontend with CPU only"
+	@echo "  $(PURPLE)make dev-local-mac$(NC)   - Start infrastructure for macOS Apple Silicon (ARM64, no GPU)"
 	@echo ''
 	@echo "$(PURPLE)Branch Development (build Langflow from source):$(NC)"
 	@echo "  $(PURPLE)make dev-branch$(NC)      - Build & run with custom Langflow branch"
@@ -346,6 +348,36 @@ dev-local-cpu: ## Start infrastructure for local development, with CPU only
 	$(COMPOSE_CMD) up -d opensearch openrag-backend dashboards langflow
 	@echo "$(PURPLE)Infrastructure started!$(NC)"
 	@echo "   $(CYAN)Backend:$(NC)    http://openrag-backend"
+	@echo "   $(CYAN)Langflow:$(NC)   http://localhost:7860"
+	@echo "   $(CYAN)OpenSearch:$(NC) http://localhost:9200"
+	@echo "   $(CYAN)Dashboards:$(NC) http://localhost:5601"
+	@echo ""
+	@echo "$(YELLOW)Now run 'make backend' and 'make frontend' in separate terminals$(NC)"
+
+######################
+# macOS (Apple Silicon / ARM64) DEVELOPMENT
+######################
+# docker-compose.mac.yml を使って linux/arm64 イメージでスタック全体を起動する。
+# GPU オーバーライド (docker-compose.gpu.yml) は含まない。
+# Usage: make dev-mac
+#        make dev-local-mac
+
+MAC_COMPOSE_CMD := $(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.mac.yml
+
+dev-mac: ## Start full stack for macOS Apple Silicon (ARM64, no GPU)
+	@echo "$(YELLOW)Starting OpenRAG for macOS Apple Silicon (ARM64)...$(NC)"
+	$(MAC_COMPOSE_CMD) up -d
+	@echo "$(PURPLE)Services started!$(NC)"
+	@echo "   $(CYAN)Frontend:$(NC)   http://localhost:3000"
+	@echo "   $(CYAN)Langflow:$(NC)   http://localhost:7860"
+	@echo "   $(CYAN)OpenSearch:$(NC) http://localhost:9200"
+	@echo "   $(CYAN)Dashboards:$(NC) http://localhost:5601"
+
+dev-local-mac: ## Start infrastructure only for macOS Apple Silicon (ARM64, no GPU)
+	@echo "$(YELLOW)Starting infrastructure only (macOS Apple Silicon)...$(NC)"
+	$(MAC_COMPOSE_CMD) up -d opensearch openrag-backend dashboards langflow
+	@echo "$(PURPLE)Infrastructure started!$(NC)"
+	@echo "   $(CYAN)Backend:$(NC)    http://localhost:8000"
 	@echo "   $(CYAN)Langflow:$(NC)   http://localhost:7860"
 	@echo "   $(CYAN)OpenSearch:$(NC) http://localhost:9200"
 	@echo "   $(CYAN)Dashboards:$(NC) http://localhost:5601"

@@ -1,0 +1,44 @@
+# Development backend image — supports linux/amd64 and linux/arm64
+#
+# 本番の Dockerfile.backend との違い:
+#   - docling モデルの事前ダウンロードをスキップ（ビルドを高速化）
+#   - easyocr モデルのウォームアップをスキップ
+#   - ARM64 (Apple Silicon) で必要な追加ライブラリをインストール
+#
+# 使用方法:
+#   docker buildx build --platform linux/arm64 -f Dockerfile.backend.dev -t openrag-backend-dev .
+#   または docker-compose.mac.yml 経由で自動利用される
+
+FROM python:3.13-slim
+
+# システムライブラリ
+# - build-essential: ネイティブ拡張のビルド
+# - libgl1, libglib2.0-0: easyocr / OpenCV が必要とするランタイム
+# - libgomp1: OpenMP (PyTorch / easyocr で使用)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    openssl \
+    git \
+    build-essential \
+    libgl1 \
+    libglib2.0-0 \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# uv インストール
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
+WORKDIR /app
+
+# Python 依存関係
+COPY pyproject.toml uv.lock ./
+RUN uv sync
+
+# アプリケーションコード
+COPY src/ ./src/
+COPY flows/ ./flows/
+
+EXPOSE 8000
+
+CMD ["uv", "run", "python", "src/main.py"]

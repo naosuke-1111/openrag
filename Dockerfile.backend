@@ -26,10 +26,10 @@ COPY warm_up_docling.py ./
 RUN uv run docling-tools models download
 RUN uv run python -c "\
 import pathlib, easyocr; \
-cache = pathlib.Path(‘/root/.EasyOCR/model’); \
+cache = pathlib.Path('/root/.EasyOCR/model'); \
 cache.mkdir(parents=True, exist_ok=True); \
-easyocr.Reader([‘fr’,’de’,’es’,’en’], download_enabled=True, model_storage_directory=str(cache)); \
-print(‘EasyOCR cache ready at’, cache)"
+easyocr.Reader(['fr','de','es','en'], download_enabled=True, model_storage_directory=str(cache)); \
+print('EasyOCR cache ready at', cache)"
 
 # RUN uv run python warm_up_docling.py && rm warm_up_docling.py warmup_ocr.pdf
 

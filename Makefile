@@ -20,6 +20,7 @@ REPO ?= https://github.com/langflow-ai/langflow.git
 # Auto-detect container runtime: prefer docker, fall back to podman
 CONTAINER_RUNTIME := $(shell command -v docker >/dev/null 2>&1 && echo "docker" || echo "podman")
 COMPOSE_CMD := $(CONTAINER_RUNTIME) compose
+EXTRA_HOSTS_OPT := -f docker-compose.extra-hosts.yaml
 
 ######################
 # COLOR DEFINITIONS
@@ -314,7 +315,7 @@ help_utils: ## Show utility commands
 
 dev: ## Start full stack with GPU support
 	@echo "$(YELLOW)Starting OpenRAG with GPU support...$(NC)"
-	$(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.gpu.yml up -d
+	$(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.gpu.yml $(EXTRA_HOSTS_OPT) up -d
 	@echo "$(PURPLE)Services started!$(NC)"
 	@echo "   $(CYAN)Backend:$(NC)    http://openrag-backend"
 	@echo "   $(CYAN)Frontend:$(NC)   http://localhost:3000"
@@ -324,7 +325,7 @@ dev: ## Start full stack with GPU support
 
 dev-cpu: ## Start full stack with CPU only
 	@echo "$(YELLOW)Starting OpenRAG with CPU only...$(NC)"
-	$(COMPOSE_CMD) up -d
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) up -d
 	@echo "$(PURPLE)Services started!$(NC)"
 	@echo "   $(CYAN)Backend:$(NC)    http://openrag-backend"
 	@echo "   $(CYAN)Frontend:$(NC)   http://localhost:3000"
@@ -334,7 +335,7 @@ dev-cpu: ## Start full stack with CPU only
 
 dev-local: ## Start infrastructure for local development
 	@echo "$(YELLOW)Starting infrastructure only (for local development)...$(NC)"
-	$(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.gpu.yml up -d opensearch openrag-backend dashboards langflow
+	$(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.gpu.yml $(EXTRA_HOSTS_OPT) up -d opensearch openrag-backend dashboards langflow
 	@echo "$(PURPLE)Infrastructure started!$(NC)"
 	@echo "   $(CYAN)Backend:$(NC)    http://openrag-backend"
 	@echo "   $(CYAN)Langflow:$(NC)   http://localhost:7860"
@@ -345,7 +346,7 @@ dev-local: ## Start infrastructure for local development
 
 dev-local-cpu: ## Start infrastructure for local development, with CPU only
 	@echo "$(YELLOW)Starting infrastructure only (for local development)...$(NC)"
-	$(COMPOSE_CMD) up -d opensearch openrag-backend dashboards langflow
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) up -d opensearch openrag-backend dashboards langflow
 	@echo "$(PURPLE)Infrastructure started!$(NC)"
 	@echo "   $(CYAN)Backend:$(NC)    http://openrag-backend"
 	@echo "   $(CYAN)Langflow:$(NC)   http://localhost:7860"
@@ -362,7 +363,7 @@ dev-local-cpu: ## Start infrastructure for local development, with CPU only
 # Usage: make dev-mac
 #        make dev-local-mac
 
-MAC_COMPOSE_CMD := $(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.mac.yml
+MAC_COMPOSE_CMD := $(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.mac.yml $(EXTRA_HOSTS_OPT)
 
 dev-mac: ## Start full stack for macOS Apple Silicon (ARM64, no GPU)
 	@echo "$(YELLOW)Starting OpenRAG for macOS Apple Silicon (ARM64)...$(NC)"
@@ -395,10 +396,10 @@ dev-branch: ## Build & run full stack with custom Langflow branch
 	@echo "   $(CYAN)Repository:$(NC) $(REPO)"
 	@echo ""
 	@echo "$(YELLOW)This may take several minutes for the first build...$(NC)"
-	GIT_BRANCH=$(BRANCH) GIT_REPO=$(REPO) $(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.dev.yml build langflow
+	GIT_BRANCH=$(BRANCH) GIT_REPO=$(REPO) $(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) build langflow
 	@echo ""
 	@echo "$(YELLOW)Starting OpenRAG with custom Langflow build...$(NC)"
-	GIT_BRANCH=$(BRANCH) GIT_REPO=$(REPO) $(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.dev.yml up -d
+	GIT_BRANCH=$(BRANCH) GIT_REPO=$(REPO) $(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) up -d
 	@echo ""
 	@echo "$(PURPLE)Dev environment started!$(NC)"
 	@echo "   $(CYAN)Langflow ($(BRANCH)):$(NC) http://localhost:7860"
@@ -411,10 +412,10 @@ dev-branch-cpu: ## Build & run full stack with custom Langflow branch and CPU on
 	@echo "   $(CYAN)Repository:$(NC) $(REPO)"
 	@echo ""
 	@echo "$(YELLOW)This may take several minutes for the first build...$(NC)"
-	GIT_BRANCH=$(BRANCH) GIT_REPO=$(REPO) $(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.dev.yml build langflow
+	GIT_BRANCH=$(BRANCH) GIT_REPO=$(REPO) $(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) build langflow
 	@echo ""
 	@echo "$(YELLOW)Starting OpenRAG (CPU only) with custom Langflow build...$(NC)"
-	GIT_BRANCH=$(BRANCH) GIT_REPO=$(REPO) $(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.dev.yml up -d
+	GIT_BRANCH=$(BRANCH) GIT_REPO=$(REPO) $(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) up -d
 	@echo ""
 	@echo "$(PURPLE)Dev environment started!$(NC)"
 	@echo "   $(CYAN)Langflow ($(BRANCH)):$(NC) http://localhost:7860"
@@ -425,40 +426,40 @@ dev-branch-cpu: ## Build & run full stack with custom Langflow branch and CPU on
 build-langflow-dev: ## Build only the Langflow dev image (no cache)
 	@echo "$(YELLOW)Building Langflow dev image from branch: $(BRANCH)$(NC)"
 	@echo "   $(CYAN)Repository:$(NC) $(REPO)"
-	GIT_BRANCH=$(BRANCH) GIT_REPO=$(REPO) $(COMPOSE_CMD) -f docker-compose.dev.yml build --no-cache langflow
+	GIT_BRANCH=$(BRANCH) GIT_REPO=$(REPO) $(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) build --no-cache langflow
 	@echo "$(PURPLE)Langflow dev image built!$(NC)"
 
 stop-dev: ## Stop dev environment containers
 	@echo "$(YELLOW)Stopping dev environment containers...$(NC)"
-	$(COMPOSE_CMD) -f docker-compose.dev.yml down
+	$(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) down
 	@echo "$(PURPLE)Dev environment stopped.$(NC)"
 
 restart-dev: ## Restart dev environment
 	@echo "$(YELLOW)Restarting dev environment with branch: $(BRANCH)$(NC)"
-	$(COMPOSE_CMD) -f docker-compose.dev.yml down
-	GIT_BRANCH=$(BRANCH) GIT_REPO=$(REPO) $(COMPOSE_CMD) -f docker-compose.dev.yml up -d
+	$(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) down
+	GIT_BRANCH=$(BRANCH) GIT_REPO=$(REPO) $(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) up -d
 	@echo "$(PURPLE)Dev environment restarted!$(NC)"
 
 clean-dev: ## Stop dev containers and remove volumes
 	@echo "$(YELLOW)Cleaning up dev containers and volumes...$(NC)"
-	$(COMPOSE_CMD) -f docker-compose.dev.yml down -v --remove-orphans
+	$(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) down -v --remove-orphans
 	@echo "$(PURPLE)Dev environment cleaned!$(NC)"
 
 logs-dev: ## Show all dev container logs
 	@echo "$(YELLOW)Showing all dev container logs...$(NC)"
-	$(COMPOSE_CMD) -f docker-compose.dev.yml logs -f
+	$(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) logs -f
 
 logs-lf-dev: ## Show Langflow dev logs
 	@echo "$(YELLOW)Showing Langflow dev logs...$(NC)"
-	$(COMPOSE_CMD) -f docker-compose.dev.yml logs -f langflow
+	$(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) logs -f langflow
 
 shell-lf-dev: ## Shell into Langflow dev container
 	@echo "$(YELLOW)Opening shell in Langflow dev container...$(NC)"
-	$(COMPOSE_CMD) -f docker-compose.dev.yml exec langflow /bin/bash
+	$(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) exec langflow /bin/bash
 
 status-dev: ## Show dev container status
 	@echo "$(PURPLE)Dev container status:$(NC)"
-	@$(COMPOSE_CMD) -f docker-compose.dev.yml ps 2>/dev/null || echo "$(YELLOW)No dev containers running$(NC)"
+	@$(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) ps 2>/dev/null || echo "$(YELLOW)No dev containers running$(NC)"
 
 ######################
 # CONTAINER MANAGEMENT
@@ -466,8 +467,8 @@ status-dev: ## Show dev container status
 
 stop: ## Stop and remove all OpenRAG containers
 	@echo "$(YELLOW)Stopping and removing all OpenRAG containers...$(NC)"
-	@$(COMPOSE_CMD) $(OPENRAG_ENV_FILE) down --remove-orphans 2>/dev/null || true
-	@$(COMPOSE_CMD) $(OPENRAG_ENV_FILE) -f docker-compose.dev.yml down --remove-orphans 2>/dev/null || true
+	@$(COMPOSE_CMD) $(OPENRAG_ENV_FILE) -f docker-compose.yml $(EXTRA_HOSTS_OPT) down --remove-orphans 2>/dev/null || true
+	@$(COMPOSE_CMD) $(OPENRAG_ENV_FILE) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) down --remove-orphans 2>/dev/null || true
 	@$(CONTAINER_RUNTIME) ps -a --filter "name=openrag" --filter "name=langflow" --filter "name=opensearch" -q | xargs -r $(CONTAINER_RUNTIME) rm -f 2>/dev/null || true
 	@echo "$(PURPLE)All OpenRAG containers stopped and removed.$(NC)"
 
@@ -475,7 +476,7 @@ restart: stop dev ## Restart all containers
 
 clean: stop ## Stop containers and remove volumes
 	@echo "$(YELLOW)Cleaning up containers and volumes...$(NC)"
-	$(COMPOSE_CMD) down -v --remove-orphans
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) down -v --remove-orphans
 	$(CONTAINER_RUNTIME) system prune -f
 	@echo "$(PURPLE)Cleanup complete!$(NC)"
 
@@ -496,7 +497,7 @@ factory-reset: ## Complete reset (stop, remove volumes, clear data, remove image
 	fi; \
 	echo ""; \
 	echo "$(YELLOW)Stopping all services and removing volumes...$(NC)"; \
-	$(COMPOSE_CMD) down -v --remove-orphans --rmi local || true; \
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) down -v --remove-orphans --rmi local || true; \
 	echo "$(YELLOW)Removing local data directories...$(NC)"; \
 	if [ -d "opensearch-data" ]; then \
 		echo "Removing opensearch-data..."; \
@@ -597,23 +598,23 @@ build-lf: ## Build Langflow Docker image
 
 logs: ## Show logs from all containers
 	@echo "$(YELLOW)Showing all container logs...$(NC)"
-	$(COMPOSE_CMD) logs -f
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) logs -f
 
 logs-be: ## Show backend container logs
 	@echo "$(YELLOW)Showing backend logs...$(NC)"
-	$(COMPOSE_CMD) logs -f openrag-backend
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) logs -f openrag-backend
 
 logs-fe: ## Show frontend container logs
 	@echo "$(YELLOW)Showing frontend logs...$(NC)"
-	$(COMPOSE_CMD) logs -f openrag-frontend
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) logs -f openrag-frontend
 
 logs-lf: ## Show langflow container logs
 	@echo "$(YELLOW)Showing langflow logs...$(NC)"
-	$(COMPOSE_CMD) logs -f langflow
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) logs -f langflow
 
 logs-os: ## Show opensearch container logs
 	@echo "$(YELLOW)Showing opensearch logs...$(NC)"
-	$(COMPOSE_CMD) logs -f opensearch
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) logs -f opensearch
 
 ######################
 # SHELL ACCESS
@@ -621,15 +622,15 @@ logs-os: ## Show opensearch container logs
 
 shell-be: ## Shell into backend container
 	@echo "$(YELLOW)Opening shell in backend container...$(NC)"
-	$(COMPOSE_CMD) exec openrag-backend /bin/bash
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) exec openrag-backend /bin/bash
 
 shell-lf: ## Shell into langflow container
 	@echo "$(YELLOW)Opening shell in langflow container...$(NC)"
-	$(COMPOSE_CMD) exec langflow /bin/bash
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) exec langflow /bin/bash
 
 shell-os: ## Shell into opensearch container
 	@echo "$(YELLOW)Opening shell in opensearch container...$(NC)"
-	$(COMPOSE_CMD) exec opensearch /bin/bash
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) exec opensearch /bin/bash
 
 ######################
 # TESTING
@@ -658,13 +659,13 @@ test-ci: ## Start infra, run integration + SDK tests, tear down (uses DockerHub 
 		chmod 644 keys/public_key.pem 2>/dev/null || true; \
 	fi; \
 	echo "$(YELLOW)Cleaning up old containers and volumes...$(NC)"; \
-	$(COMPOSE_CMD) down -v 2>/dev/null || true; \
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) down -v 2>/dev/null || true; \
 	echo "$(YELLOW)Pulling latest images...$(NC)"; \
-	$(COMPOSE_CMD) pull; \
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) pull; \
 	echo "$(YELLOW)Building OpenSearch image override...$(NC)"; \
 	$(CONTAINER_RUNTIME) build --no-cache -t langflowai/openrag-opensearch:latest -f Dockerfile .; \
 	echo "$(YELLOW)Starting infra (OpenSearch + Dashboards + Langflow + Backend + Frontend) with CPU containers$(NC)"; \
-	$(COMPOSE_CMD) up -d opensearch dashboards langflow openrag-backend openrag-frontend; \
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) up -d opensearch dashboards langflow openrag-backend openrag-frontend; \
 	echo "$(YELLOW)Starting docling-serve...$(NC)"; \
 	DOCLING_ENDPOINT=$$(uv run python scripts/docling_ctl.py start --port 5001 | grep "Endpoint:" | awk '{print $$2}'); \
 	echo "$(PURPLE)Docling-serve started at $$DOCLING_ENDPOINT$(NC)"; \
@@ -728,7 +729,7 @@ test-ci: ## Start infra, run integration + SDK tests, tear down (uses DockerHub 
 	($(call test_jwt_opensearch)) || TEST_RESULT=1; \
 	echo "$(YELLOW)Tearing down infra$(NC)"; \
 	uv run python scripts/docling_ctl.py stop || true; \
-	$(COMPOSE_CMD) down -v 2>/dev/null || true; \
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) down -v 2>/dev/null || true; \
 	exit $$TEST_RESULT
 
 test-ci-local: ## Same as test-ci but builds all images locally
@@ -744,14 +745,14 @@ test-ci-local: ## Same as test-ci but builds all images locally
 		chmod 644 keys/public_key.pem 2>/dev/null || true; \
 	fi; \
 	echo "$(YELLOW)Cleaning up old containers and volumes...$(NC)"; \
-	$(COMPOSE_CMD) down -v 2>/dev/null || true; \
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) down -v 2>/dev/null || true; \
 	echo "$(YELLOW)Building all images locally...$(NC)"; \
 	$(CONTAINER_RUNTIME) build -t langflowai/openrag-opensearch:latest -f Dockerfile .; \
 	$(CONTAINER_RUNTIME) build -t langflowai/openrag-backend:latest -f Dockerfile.backend .; \
 	$(CONTAINER_RUNTIME) build -t langflowai/openrag-frontend:latest -f Dockerfile.frontend .; \
 	$(CONTAINER_RUNTIME) build -t langflowai/openrag-langflow:latest -f Dockerfile.langflow .; \
 	echo "$(YELLOW)Starting infra (OpenSearch + Dashboards + Langflow + Backend + Frontend) with CPU containers$(NC)"; \
-	$(COMPOSE_CMD) up -d opensearch dashboards langflow openrag-backend openrag-frontend; \
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) up -d opensearch dashboards langflow openrag-backend openrag-frontend; \
 	echo "$(YELLOW)Starting docling-serve...$(NC)"; \
 	DOCLING_ENDPOINT=$$(uv run python scripts/docling_ctl.py start --port 5001 | grep "Endpoint:" | awk '{print $$2}'); \
 	echo "$(PURPLE)Docling-serve started at $$DOCLING_ENDPOINT$(NC)"; \
@@ -825,7 +826,7 @@ test-ci-local: ## Same as test-ci but builds all images locally
 	($(call test_jwt_opensearch)) || TEST_RESULT=1; \
 	echo "$(YELLOW)Tearing down infra$(NC)"; \
 	uv run python scripts/docling_ctl.py stop || true; \
-	$(COMPOSE_CMD) down -v 2>/dev/null || true; \
+	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) down -v 2>/dev/null || true; \
 	exit $$TEST_RESULT
 
 test-os-jwt: ## Test JWT authentication against OpenSearch
@@ -853,7 +854,7 @@ lint: ## Run linting checks
 
 status: ## Show container status
 	@echo "$(PURPLE)Container status:$(NC)"
-	@$(COMPOSE_CMD) ps 2>/dev/null || echo "$(YELLOW)No containers running$(NC)"
+	@$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) ps 2>/dev/null || echo "$(YELLOW)No containers running$(NC)"
 
 health: ## Check health of all services
 	@echo "$(PURPLE)Health check:$(NC)"

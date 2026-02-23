@@ -74,7 +74,7 @@ _NEWS_ENRICHED_MAPPING = {
             "vector": {
                 "type": "knn_vector",
                 "dimension": _EMBED_DIM,
-                "method": {"name": "hnsw", "engine": "faiss"},
+                "method": {"name": "hnsw", "engine": "nmslib"},
             },
             "source_type": {"type": "keyword"},
             "language": {"type": "keyword"},
@@ -102,7 +102,7 @@ _BOX_ENRICHED_MAPPING = {
             "vector": {
                 "type": "knn_vector",
                 "dimension": _EMBED_DIM,
-                "method": {"name": "hnsw", "engine": "faiss"},
+                "method": {"name": "hnsw", "engine": "nmslib"},
             },
             "source_type": {"type": "keyword"},
             "box_file_id": {"type": "keyword"},

@@ -17,12 +17,13 @@
 4. [環境変数の設定](#4-環境変数の設定)
 5. [前提条件の確認](#5-前提条件の確認)
 6. [依存関係のインストール](#6-依存関係のインストール)
-7. [アプリケーションの起動](#7-アプリケーションの起動)
-   - 7.1 [方法A: フルDockerスタック（最もシンプル）](#71-方法a-フルdockerスタック最もシンプル)
-   - 7.2 [方法B: ローカル開発（推奨）](#72-方法b-ローカル開発推奨)
-8. [動作確認](#8-動作確認)
-9. [日常的な操作](#9-日常的な操作)
-10. [トラブルシューティング](#10-トラブルシューティング)
+7. [（オプション）初回ウィザードのスキップ](#7-オプション初回ウィザードのスキップ)
+8. [アプリケーションの起動](#8-アプリケーションの起動)
+   - 8.1 [方法A: フルDockerスタック（最もシンプル）](#81-方法a-フルdockerスタック最もシンプル)
+   - 8.2 [方法B: ローカル開発（推奨）](#82-方法b-ローカル開発推奨)
+9. [動作確認](#9-動作確認)
+10. [日常的な操作](#10-日常的な操作)
+11. [トラブルシューティング](#11-トラブルシューティング)
 
 ---
 
@@ -368,11 +369,111 @@ make setup
 
 ---
 
-## 7. アプリケーションの起動
+## 7. （オプション）初回ウィザードのスキップ
+
+OpenRAGは初回起動時に **セットアップウィザード**（モデルプロバイダーの選択・設定を行う4ステップのUI）が表示されます。`.env` に設定済みの情報を使って起動前にウィザードをスキップすることができます。
+
+### 仕組み
+
+ウィザードの表示は `config/config.yaml` の2つのフィールドで制御されています:
+
+| フィールド | 役割 |
+|-----------|------|
+| `onboarding.current_step` | `4` 未満のときウィザードを表示（4以上でスキップ） |
+| `edited` | `true` のとき `.env` の環境変数上書きを無効化 |
+
+> **重要:** `edited: true` にすると `.env` の `LLM_PROVIDER` / `LLM_MODEL` / `EMBEDDING_*` / `WATSONX_*` などが**すべて無視**されます。`.env` の値を活かしたまま起動するには `edited: false` のままにしてください。
+
+### 手順
+
+**① `config/` ディレクトリと `config.yaml` を作成します:**
+
+```bash
+mkdir -p config
+```
+
+`config/config.yaml` を以下の内容で作成します:
+
+```yaml
+# config/config.yaml
+# edited: false にすることで .env の環境変数が引き続き適用される
+edited: false
+
+onboarding:
+  current_step: 4      # 4 以上でウィザードをスキップ
+  assistant_message: null
+  card_steps: null
+  upload_steps: null
+  selected_nudge: null
+  openrag_docs_filter_id: null
+  user_doc_filter_id: null
+
+agent:
+  llm_provider: openai          # .env の LLM_PROVIDER で上書きされる
+  llm_model: gpt-oss-120b       # .env の LLM_MODEL で上書きされる
+  system_prompt: ""             # 空欄でデフォルトのシステムプロンプトを使用
+
+knowledge:
+  embedding_provider: ibm                              # .env の EMBEDDING_PROVIDER で上書きされる
+  embedding_model: granite-embedding-107m-multilingual # .env の EMBEDDING_MODEL で上書きされる
+  chunk_size: 1000
+  chunk_overlap: 200
+  table_structure: true
+  ocr: false
+  picture_descriptions: false
+  index_name: documents
+
+providers:
+  openai:
+    api_key: ""
+    configured: false
+  anthropic:
+    api_key: ""
+    configured: false
+  watsonx:
+    api_key: ""
+    endpoint: ""
+    project_id: ""
+    configured: false
+  ollama:
+    endpoint: ""
+    configured: false
+```
+
+**② 設定の優先順位を確認します:**
+
+```
+起動時の読み込み順（edited: false の場合）:
+
+1. config/config.yaml を読み込む
+   → onboarding.current_step: 4 が設定される（ウィザードスキップ）
+2. .env の環境変数で上書き
+   → LLM_PROVIDER, LLM_MODEL, EMBEDDING_*, WATSONX_* 等が適用される
+3. フロントエンドが current_step >= 4 を確認
+   → ウィザードをスキップしてチャット画面を直接表示
+```
+
+**③ アプリケーションを起動します（次のセクションへ進む）:**
+
+```bash
+make dev-mac
+```
+
+### OpenSearch インデックスについて
+
+ウィザードを完了すると通常 OpenSearch インデックスが自動初期化されます。ウィザードをスキップした場合、初回起動後にインデックスが空の状態になることがあります。その場合は以下で手動初期化してください:
+
+```bash
+make db-reset
+```
+
+---
+
+## 8. アプリケーションの起動
 
 MacBook（Apple Silicon）向けには **`make dev-mac`** を使います。このコマンドはARM64アーキテクチャに最適化されています。
 
-### 7.1 方法A: フルDockerスタック（最もシンプル）
+### 8.1 方法A: フルDockerスタック（最もシンプル）
 
 すべてのサービスをDockerコンテナとして起動します。初めての方や動作確認には最適です。
 
@@ -402,7 +503,7 @@ make health   # 各サービスのヘルスチェック
 
 ---
 
-### 7.2 方法B: ローカル開発（推奨）
+### 8.2 方法B: ローカル開発（推奨）
 
 コードを頻繁に編集する開発者向けです。インフラはDockerで動かしつつ、バックエンドとフロントエンドはローカルで実行することで、コード変更を即座に反映できます。
 
@@ -434,7 +535,7 @@ make docling
 
 ---
 
-## 8. 動作確認
+## 9. 動作確認
 
 ### サービスへのアクセス
 
@@ -454,7 +555,7 @@ make docling
 
 ---
 
-## 9. 日常的な操作
+## 10. 日常的な操作
 
 ### サービスの停止
 
@@ -492,7 +593,7 @@ make health      # ヘルスチェック
 
 ---
 
-## 10. トラブルシューティング
+## 11. トラブルシューティング
 
 ### ポートが使用中のエラー
 

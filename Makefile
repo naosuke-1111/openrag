@@ -320,7 +320,7 @@ dev: ## GPU サポートでフルスタックを起動する
 	@echo "   $(CYAN)Backend:$(NC)    http://openrag-backend"
 	@echo "   $(CYAN)Frontend:$(NC)   http://localhost:3000"
 	@echo "   $(CYAN)Langflow:$(NC)   http://localhost:7860"
-	@echo "   $(CYAN)OpenSearch:$(NC) http://localhost:9200"
+	@echo "   $(CYAN)OpenSearch:$(NC) https://localhost:9200"
 	@echo "   $(CYAN)Dashboards:$(NC) http://localhost:5601"
 
 dev-cpu: ## CPU のみでフルスタックを起動する
@@ -330,7 +330,7 @@ dev-cpu: ## CPU のみでフルスタックを起動する
 	@echo "   $(CYAN)Backend:$(NC)    http://openrag-backend"
 	@echo "   $(CYAN)Frontend:$(NC)   http://localhost:3000"
 	@echo "   $(CYAN)Langflow:$(NC)   http://localhost:7860"
-	@echo "   $(CYAN)OpenSearch:$(NC) http://localhost:9200"
+	@echo "   $(CYAN)OpenSearch:$(NC) https://localhost:9200"
 	@echo "   $(CYAN)Dashboards:$(NC) http://localhost:5601"
 
 dev-local: ## ローカル開発用インフラを起動する
@@ -339,7 +339,7 @@ dev-local: ## ローカル開発用インフラを起動する
 	@echo "$(PURPLE)Infrastructure started!$(NC)"
 	@echo "   $(CYAN)Backend:$(NC)    http://openrag-backend"
 	@echo "   $(CYAN)Langflow:$(NC)   http://localhost:7860"
-	@echo "   $(CYAN)OpenSearch:$(NC) http://localhost:9200"
+	@echo "   $(CYAN)OpenSearch:$(NC) https://localhost:9200"
 	@echo "   $(CYAN)Dashboards:$(NC) http://localhost:5601"
 	@echo ""
 	@echo "$(YELLOW)Now run 'make backend' and 'make frontend' in separate terminals$(NC)"
@@ -350,7 +350,7 @@ dev-local-cpu: ## ローカル開発用インフラを CPU のみで起動する
 	@echo "$(PURPLE)Infrastructure started!$(NC)"
 	@echo "   $(CYAN)Backend:$(NC)    http://openrag-backend"
 	@echo "   $(CYAN)Langflow:$(NC)   http://localhost:7860"
-	@echo "   $(CYAN)OpenSearch:$(NC) http://localhost:9200"
+	@echo "   $(CYAN)OpenSearch:$(NC) https://localhost:9200"
 	@echo "   $(CYAN)Dashboards:$(NC) http://localhost:5601"
 	@echo ""
 	@echo "$(YELLOW)Now run 'make backend' and 'make frontend' in separate terminals$(NC)"
@@ -371,7 +371,7 @@ dev-mac: ## macOS Apple Silicon（ARM64、GPU なし）でフルスタックを�
 	@echo "$(PURPLE)Services started!$(NC)"
 	@echo "   $(CYAN)Frontend:$(NC)   http://localhost:3000"
 	@echo "   $(CYAN)Langflow:$(NC)   http://localhost:7860"
-	@echo "   $(CYAN)OpenSearch:$(NC) http://localhost:9200"
+	@echo "   $(CYAN)OpenSearch:$(NC) https://localhost:9200"
 	@echo "   $(CYAN)Dashboards:$(NC) http://localhost:5601"
 
 dev-local-mac: ## macOS Apple Silicon（ARM64、GPU なし）用インフラのみを起動する
@@ -380,7 +380,7 @@ dev-local-mac: ## macOS Apple Silicon（ARM64、GPU なし）用インフラの�
 	@echo "$(PURPLE)Infrastructure started!$(NC)"
 	@echo "   $(CYAN)Backend:$(NC)    http://localhost:8000"
 	@echo "   $(CYAN)Langflow:$(NC)   http://localhost:7860"
-	@echo "   $(CYAN)OpenSearch:$(NC) http://localhost:9200"
+	@echo "   $(CYAN)OpenSearch:$(NC) https://localhost:9200"
 	@echo "   $(CYAN)Dashboards:$(NC) http://localhost:5601"
 	@echo ""
 	@echo "$(YELLOW)Now run 'make backend' and 'make frontend' in separate terminals$(NC)"
@@ -404,7 +404,7 @@ dev-branch: ## カスタム Langflow ブランチでフルスタックをビル�
 	@echo "$(PURPLE)Dev environment started!$(NC)"
 	@echo "   $(CYAN)Langflow ($(BRANCH)):$(NC) http://localhost:7860"
 	@echo "   $(CYAN)Frontend:$(NC)              http://localhost:3000"
-	@echo "   $(CYAN)OpenSearch:$(NC)            http://localhost:9200"
+	@echo "   $(CYAN)OpenSearch:$(NC)            https://localhost:9200"
 	@echo "   $(CYAN)Dashboards:$(NC)            http://localhost:5601"
 
 dev-branch-cpu: ## カスタム Langflow ブランチと CPU のみモードでフルスタックをビルド & 起動する
@@ -420,7 +420,7 @@ dev-branch-cpu: ## カスタム Langflow ブランチと CPU のみモードで�
 	@echo "$(PURPLE)Dev environment started!$(NC)"
 	@echo "   $(CYAN)Langflow ($(BRANCH)):$(NC) http://localhost:7860"
 	@echo "   $(CYAN)Frontend:$(NC)              http://localhost:3000"
-	@echo "   $(CYAN)OpenSearch:$(NC)            http://localhost:9200"
+	@echo "   $(CYAN)OpenSearch:$(NC)            https://localhost:9200"
 	@echo "   $(CYAN)Dashboards:$(NC)            http://localhost:5601"
 
 build-langflow-dev: ## Langflow 開発イメージのみをビルドする（キャッシュなし）
@@ -868,8 +868,8 @@ health: ## すべてのサービスのヘルスチェックを行う
 
 db-reset: ## OpenSearch インデックスをリセットする
 	@echo "$(YELLOW)Resetting OpenSearch indices...$(NC)"
-	curl -X DELETE "http://localhost:9200/documents" -u admin:$${OPENSEARCH_PASSWORD} || true
-	curl -X DELETE "http://localhost:9200/knowledge_filters" -u admin:$${OPENSEARCH_PASSWORD} || true
+	curl -k -X DELETE "https://localhost:9200/documents" -u admin:$${OPENSEARCH_PASSWORD} || true
+	curl -k -X DELETE "https://localhost:9200/knowledge_filters" -u admin:$${OPENSEARCH_PASSWORD} || true
 	@echo "$(PURPLE)Indices reset. Restart backend to recreate.$(NC)"
 
 clear-os-data: ## OpenSearch データディレクトリをクリアする

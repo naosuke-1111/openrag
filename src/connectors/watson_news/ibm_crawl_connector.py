@@ -1,7 +1,7 @@
-"""IBM official site crawler with differential URL detection.
+"""差分 URL 検出機能を備えた IBM 公式サイトクローラー。
 
-Reads crawl targets from watson-news/ibm_crawl_targets.yaml and detects new
-article URLs by comparing against already-indexed URLs in OpenSearch.
+watson-news/ibm_crawl_targets.yaml からクロール対象を読み込み、
+OpenSearch に既にインデックスされた URL と比較して新しい記事 URL を検出する。
 """
 
 import asyncio
@@ -46,14 +46,14 @@ class CrawlTarget:
 
 
 def load_crawl_targets(config_path: str | None = None) -> list[CrawlTarget]:
-    """Load crawl targets from the YAML configuration file.
+    """YAML 設定ファイルからクロール対象を読み込む。
 
     Args:
-        config_path: Path to the YAML file. Defaults to the ``WATSON_NEWS_CRAWL_CONFIG``
-            environment variable, then ``watson-news/ibm_crawl_targets.yaml``.
+        config_path: YAML ファイルのパス。デフォルトは環境変数 ``WATSON_NEWS_CRAWL_CONFIG``、
+            次に ``watson-news/ibm_crawl_targets.yaml`` を参照する。
 
     Returns:
-        List of enabled :class:`CrawlTarget` instances.
+        有効な :class:`CrawlTarget` インスタンスのリスト。
     """
     if config_path is None:
         config_path = os.getenv(
@@ -76,7 +76,7 @@ def load_crawl_targets(config_path: str | None = None) -> list[CrawlTarget]:
 
 
 class RobotsTxtCache:
-    """Simple in-process cache for robots.txt files (1-hour TTL)."""
+    """robots.txt ファイルのシンプルなインプロセスキャッシュ（TTL: 1時間）。"""
 
     _TTL_SECONDS = 3600
 
@@ -141,7 +141,7 @@ def _extract_article_urls(
     base_url: str,
     selector: str | None,
 ) -> list[str]:
-    """Extract article URLs from an index page HTML string."""
+    """インデックスページの HTML 文字列から記事 URL を抽出する。"""
     soup = BeautifulSoup(html, "html.parser")
     base_domain = urlparse(base_url).netloc
 
@@ -156,7 +156,7 @@ def _extract_article_urls(
         full = urljoin(base_url, href)
         parsed = urlparse(full)
         if parsed.netloc.endswith(base_domain) and parsed.scheme in {"http", "https"}:
-            # Strip query params and fragments to normalise
+            # クエリパラメーターとフラグメントを除去して正規化
             clean = parsed._replace(query="", fragment="").geturl()
             if clean not in urls:
                 urls.append(clean)
@@ -167,17 +167,17 @@ async def crawl_target(
     target: CrawlTarget,
     known_urls: set[str],
 ) -> list[ConnectorDocument]:
-    """Crawl a single IBM site target and return new articles.
+    """単一の IBM サイト対象をクロールし、新しい記事を返す。
 
     Args:
-        target: Crawl target configuration.
-        known_urls: Set of already-indexed URLs (for differential detection).
+        target: クロール対象の設定。
+        known_urls: 既にインデックスされた URL のセット（差分検出用）。
 
     Returns:
-        List of new :class:`ConnectorDocument` instances.
+        新しい :class:`ConnectorDocument` インスタンスのリスト。
     """
     async with httpx.AsyncClient() as client:
-        # 1. Fetch index page
+        # 1. インデックスページを取得
         html = await _fetch_html(
             client,
             target.index_url,
@@ -188,10 +188,10 @@ async def crawl_target(
             logger.warning("Failed to fetch index page", target=target.name)
             return []
 
-        # 2. Extract article URLs
+        # 2. 記事 URL を抽出
         all_urls = _extract_article_urls(html, target.index_url, target.article_link_selector)
 
-        # 3. Differential: keep only new URLs
+        # 3. 差分: 新しい URL のみを残す
         new_urls = [u for u in all_urls if u not in known_urls]
         if target.max_articles_per_run > 0:
             new_urls = new_urls[: target.max_articles_per_run]
@@ -203,7 +203,7 @@ async def crawl_target(
             new=len(new_urls),
         )
 
-        # 4. Crawl each new article
+        # 4. 各新規記事をクロール
         documents: list[ConnectorDocument] = []
         for url in new_urls:
             if target.respect_robots_txt:

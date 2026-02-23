@@ -1,4 +1,4 @@
-"""GDELT v2 Article List connector for IBM-related news."""
+"""IBM 関連ニュース向け GDELT v2 記事リストコネクター。"""
 
 import asyncio
 import os
@@ -22,9 +22,9 @@ GDELT_REQUEST_TIMEOUT = float(os.getenv("GDELT_REQUEST_TIMEOUT", "30"))
 
 
 class GdeltConnector:
-    """Fetches IBM-related articles from the GDELT v2 Document API.
+    """GDELT v2 Document API から IBM 関連記事を取得する。
 
-    GDELT is a public API — no OAuth required.
+    GDELT は公開 API のため OAuth 不要。
     """
 
     CONNECTOR_NAME = "gdelt_news"
@@ -52,15 +52,15 @@ class GdeltConnector:
         max_records: int | None = None,
         timespan: str | None = None,
     ) -> list[ConnectorDocument]:
-        """Fetch articles from GDELT matching *query*.
+        """*query* に一致する記事を GDELT から取得する。
 
         Args:
-            query: Search keyword (default: GDELT_QUERY_KEYWORD env var).
-            max_records: Maximum number of articles to return.
-            timespan: GDELT timespan string e.g. ``"15min"``, ``"1d"``.
+            query: 検索キーワード（デフォルト: 環境変数 GDELT_QUERY_KEYWORD）。
+            max_records: 返却する記事の最大件数。
+            timespan: GDELT タイムスパン文字列（例: ``"15min"``、``"1d"``）。
 
         Returns:
-            List of :class:`ConnectorDocument` instances (one per article).
+            :class:`ConnectorDocument` インスタンスのリスト（記事ごとに1件）。
         """
         q = query or GDELT_QUERY_KEYWORD
         n = max_records or GDELT_MAX_RECORDS
@@ -108,7 +108,7 @@ class GdeltConnector:
         domain = article.get("domain", "")
         seendate = article.get("seendate", "")
 
-        # GDELT seendate format: 20260221T120000Z
+        # GDELT seendate のフォーマット: 20260221T120000Z
         try:
             seen_dt = datetime.strptime(seendate, "%Y%m%dT%H%M%SZ").replace(
                 tzinfo=timezone.utc

@@ -1,4 +1,4 @@
-"""ETL orchestrator: fetch → clean → enrich → embed → index."""
+"""ETL オーケストレーター: 取得 → クリーニング → エンリッチ → 埋め込み → インデックス登録。"""
 
 import asyncio
 import os
@@ -17,14 +17,14 @@ from utils.logging_config import get_logger
 logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
-# OpenSearch configuration
+# OpenSearch 設定
 # ---------------------------------------------------------------------------
 OPENSEARCH_HOST = os.getenv("OPENSEARCH_HOST", "localhost")
 OPENSEARCH_PORT = int(os.getenv("OPENSEARCH_PORT", "9200"))
 OPENSEARCH_USERNAME = os.getenv("OPENSEARCH_USERNAME", "admin")
 OPENSEARCH_PASSWORD = os.getenv("OPENSEARCH_PASSWORD", "")
 
-# Watson News OpenSearch index names
+# Watson News の OpenSearch インデックス名
 IDX_NEWS_RAW = "watson_news_raw"
 IDX_NEWS_CLEAN = "watson_news_clean"
 IDX_NEWS_ENRICHED = "watson_news_enriched"
@@ -46,7 +46,7 @@ def _make_opensearch() -> AsyncOpenSearch:
 
 
 async def _get_known_urls(os_client: AsyncOpenSearch, index: str) -> set[str]:
-    """Return the set of URLs already stored in *index*."""
+    """*index* に既に格納されている URL のセットを返す。"""
     try:
         resp = await os_client.search(
             index=index,
@@ -66,13 +66,13 @@ async def _upsert_doc(os_client: AsyncOpenSearch, index: str, doc_id: str, body:
 
 
 # ---------------------------------------------------------------------------
-# Pipeline steps
+# パイプライン処理ステップ
 # ---------------------------------------------------------------------------
 
 async def run_gdelt_pipeline() -> int:
-    """Fetch GDELT articles and persist raw + enriched records.
+    """GDELT 記事を取得し、生データとエンリッチ済みレコードを保存する。
 
-    Returns the number of articles processed.
+    処理した記事数を返す。
     """
     logger.info("Starting GDELT pipeline")
     os_client = _make_opensearch()
@@ -87,7 +87,7 @@ async def run_gdelt_pipeline() -> int:
             if doc.source_url in known_urls:
                 continue
 
-            # Raw layer
+            # 生データレイヤー
             raw_body = {
                 "id": doc.id,
                 "url": doc.source_url,
@@ -99,7 +99,7 @@ async def run_gdelt_pipeline() -> int:
             }
             await _upsert_doc(os_client, IDX_NEWS_RAW, doc.id, raw_body)
 
-            # Clean + enrich
+            # クリーニング + エンリッチ
             clean = clean_news_article(doc)
             if not clean:
                 continue
@@ -118,9 +118,9 @@ async def run_gdelt_pipeline() -> int:
 
 
 async def run_ibm_crawl_pipeline() -> int:
-    """Crawl IBM official sites and persist raw + enriched records.
+    """IBM 公式サイトをクロールし、生データとエンリッチ済みレコードを保存する。
 
-    Returns the number of articles processed.
+    処理した記事数を返す。
     """
     logger.info("Starting IBM crawl pipeline")
     os_client = _make_opensearch()
@@ -154,7 +154,7 @@ async def run_ibm_crawl_pipeline() -> int:
                 await _upsert_doc(os_client, IDX_NEWS_ENRICHED, doc.id, enriched)
                 total += 1
 
-            # Add newly crawled URLs to known set to avoid re-processing within the same run
+            # 同一実行内での再処理を防ぐため、新たにクロールした URL を既知セットに追加
             known_urls.update(doc.source_url for doc in docs)
 
         logger.info("IBM crawl pipeline complete", processed=total)
@@ -164,13 +164,13 @@ async def run_ibm_crawl_pipeline() -> int:
 
 
 async def run_box_pipeline(box_documents: list[Any]) -> int:
-    """Process Box documents fetched by BoxConnector.
+    """BoxConnector が取得した Box ドキュメントを処理する。
 
     Args:
-        box_documents: List of :class:`ConnectorDocument` instances from Box.
+        box_documents: Box から取得した :class:`ConnectorDocument` インスタンスのリスト。
 
     Returns:
-        Number of chunks processed.
+        処理したチャンク数。
     """
     logger.info("Starting Box pipeline", doc_count=len(box_documents))
     os_client = _make_opensearch()
@@ -178,7 +178,7 @@ async def run_box_pipeline(box_documents: list[Any]) -> int:
     try:
         total_chunks = 0
         for doc in box_documents:
-            # Raw layer
+            # 生データレイヤー
             raw_body = {
                 "id": doc.id,
                 "box_file_id": doc.metadata.get("box_file_id", doc.id),
@@ -189,7 +189,7 @@ async def run_box_pipeline(box_documents: list[Any]) -> int:
             }
             await _upsert_doc(os_client, IDX_BOX_RAW, doc.id, raw_body)
 
-            # Clean (chunked)
+            # クリーニング（チャンク分割）
             chunks = clean_box_document(doc)
             for chunk in chunks:
                 enriched_chunk = await enrich_box_chunk(chunk)
@@ -205,12 +205,12 @@ async def run_box_pipeline(box_documents: list[Any]) -> int:
 
 
 async def run_full_pipeline() -> dict[str, int]:
-    """Run all ETL pipelines concurrently (GDELT + IBM crawl).
+    """全 ETL パイプラインを並列実行する（GDELT + IBM クロール）。
 
-    Box pipeline requires authenticated Box documents and is triggered separately.
+    Box パイプラインは認証済み Box ドキュメントが必要なため、個別に起動する。
 
     Returns:
-        Dict with counts: ``{"gdelt": n, "ibm_crawl": n}``.
+        カウントを含む dict: ``{"gdelt": n, "ibm_crawl": n}``。
     """
     gdelt_task = asyncio.create_task(run_gdelt_pipeline())
     ibm_task = asyncio.create_task(run_ibm_crawl_pipeline())

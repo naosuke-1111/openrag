@@ -1,5 +1,5 @@
-"""AI enrichment step: summarization, sentiment analysis, entity extraction,
-topic classification, and embedding via watsonx.ai on-prem.
+"""AI エンリッチメント処理: 要約、感情分析、エンティティ抽出、
+トピック分類、および watsonx.ai オンプレミスによる埋め込み生成。
 """
 
 import asyncio
@@ -14,7 +14,7 @@ from utils.logging_config import get_logger
 logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
-# Configuration (read from environment – values come from .env / .creds_example)
+# 設定（環境変数から読み込み – .env / .creds_example の値を使用）
 # ---------------------------------------------------------------------------
 WATSONX_API_URL = os.getenv("WATSONX_API_URL", "")
 WATSONX_API_KEY = os.getenv("WATSONX_API_KEY", "")
@@ -30,7 +30,7 @@ WATSONX_PROJECT_ID = os.getenv("WATSONX_PROJECT_ID", "")
 WATSONX_USERNAME = os.getenv("WATSONX_USERNAME", "")
 WATSONX_PASSWORD = os.getenv("WATSONX_PASSWORD", "")
 
-# LLM and embedding models
+# LLM と埋め込みモデル
 WATSON_NEWS_ENRICH_MODEL = os.getenv(
     "WATSON_NEWS_ENRICH_MODEL", os.getenv("WATSONX_LLM_ID1", "openai/gpt-oss-120b")
 )
@@ -39,7 +39,7 @@ WATSON_NEWS_EMBED_MODEL = os.getenv(
     os.getenv("WATSONX_LLM_ID3", "ibm/granite-embedding-107m-multilingual"),
 )
 
-# Watson News embedding dimension (granite-embedding-107m-multilingual = 384)
+# Watson News の埋め込み次元数（granite-embedding-107m-multilingual = 384）
 WATSON_NEWS_EMBED_DIM = 384
 
 _ENRICH_PROMPT_TEMPLATE = """You are an AI analyst. Analyze the following news article and return a JSON object with these fields:
@@ -57,7 +57,7 @@ Article body:
 
 
 def _build_ssl_context() -> bool | ssl.SSLContext:
-    """Build SSL context based on environment configuration."""
+    """環境設定に基づいて SSL コンテキストを構築する。"""
     if not WATSONX_SSL_VERIFY:
         return False
     if WATSONX_CA_BUNDLE_PATH:
@@ -67,7 +67,7 @@ def _build_ssl_context() -> bool | ssl.SSLContext:
 
 
 class WatsonXClient:
-    """Lightweight async client for watsonx.ai on-prem REST APIs."""
+    """watsonx.ai オンプレミス REST API 向けの軽量非同期クライアント。"""
 
     def __init__(self) -> None:
         ssl_verify = _build_ssl_context()
@@ -79,7 +79,7 @@ class WatsonXClient:
         self._bearer_token: str | None = None
 
     async def _get_bearer_token(self) -> str:
-        """Obtain a bearer token from the ICP4D auth endpoint."""
+        """ICP4D 認証エンドポイントからベアラートークンを取得する。"""
         if self._bearer_token:
             return self._bearer_token
 
@@ -99,7 +99,7 @@ class WatsonXClient:
         }
 
     async def generate(self, prompt: str, max_new_tokens: int = 1024) -> str:
-        """Call the watsonx.ai text generation endpoint."""
+        """watsonx.ai テキスト生成エンドポイントを呼び出す。"""
         headers = await self._auth_headers()
         url = (
             f"{WATSONX_API_URL}/ml/v1/text/generation"
@@ -119,7 +119,7 @@ class WatsonXClient:
             try:
                 resp = await self._http.post(url, headers=headers, json=payload)
                 if resp.status_code == 401:
-                    # Token may have expired — refresh and retry
+                    # トークンが期限切れの可能性 — リフレッシュしてリトライ
                     self._bearer_token = None
                     headers = await self._auth_headers()
                     continue
@@ -134,7 +134,7 @@ class WatsonXClient:
         return ""
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
-        """Call the watsonx.ai embedding endpoint."""
+        """watsonx.ai 埋め込みエンドポイントを呼び出す。"""
         headers = await self._auth_headers()
         url = (
             f"{WATSONX_API_URL}/ml/v1/text/embeddings"
@@ -166,7 +166,7 @@ class WatsonXClient:
         await self._http.aclose()
 
 
-# Module-level singleton
+# モジュールレベルのシングルトン
 _client: WatsonXClient | None = None
 
 
@@ -178,13 +178,13 @@ def get_watsonx_client() -> WatsonXClient:
 
 
 async def enrich_article(clean_record: dict[str, Any]) -> dict[str, Any]:
-    """Enrich a cleaned news article record with AI-generated fields.
+    """クリーニング済みニュース記事レコードを AI 生成フィールドでエンリッチする。
 
-    Adds: ``summary``, ``sentiment_label``, ``sentiment_score``,
-    ``entities``, ``topic``, and ``vector``.
+    追加されるフィールド: ``summary``、``sentiment_label``、``sentiment_score``、
+    ``entities``、``topic``、``vector``。
     """
     title = clean_record.get("title", "")
-    body = clean_record.get("clean_body", "")[:4000]  # Truncate to avoid token overflow
+    body = clean_record.get("clean_body", "")[:4000]  # トークンオーバーフロー防止のため切り捨て
 
     prompt = _ENRICH_PROMPT_TEMPLATE.format(title=title, body=body)
     client = get_watsonx_client()
@@ -222,7 +222,7 @@ async def enrich_article(clean_record: dict[str, Any]) -> dict[str, Any]:
 
 
 async def enrich_box_chunk(chunk: dict[str, Any]) -> dict[str, Any]:
-    """Enrich a Box document chunk with embedding (and optional topic extraction)."""
+    """Box ドキュメントチャンクを埋め込み（およびオプションのトピック抽出）でエンリッチする。"""
     text = chunk.get("clean_text", "")[:4000]
     client = get_watsonx_client()
 

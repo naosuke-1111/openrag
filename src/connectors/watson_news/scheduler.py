@@ -1,9 +1,9 @@
-"""APScheduler-based scheduler for Watson News ETL jobs.
+"""Watson News ETL ジョブ向け APScheduler ベースのスケジューラー。
 
-Registers:
-- GDELT fetch job (every 15 minutes)
-- IBM crawl jobs (one per target, interval from ibm_crawl_targets.yaml)
-- Box diff-fetch + clean/enrich/index (every 1 hour)
+登録されるジョブ:
+- GDELT 取得ジョブ（15分ごと）
+- IBM クロールジョブ（ibm_crawl_targets.yaml に定義された対象ごと、間隔はファイルに準拠）
+- Box 差分取得 + クリーニング / エンリッチ / インデックス登録（1時間ごと）
 """
 
 import asyncio
@@ -28,7 +28,7 @@ def _get_scheduler() -> AsyncIOScheduler:
 
 
 # ---------------------------------------------------------------------------
-# Job wrappers (sync → async bridge required by APScheduler)
+# ジョブラッパー（APScheduler に必要な sync → async ブリッジ）
 # ---------------------------------------------------------------------------
 
 def _run_gdelt() -> None:
@@ -40,22 +40,22 @@ def _run_ibm_crawl() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Public API
+# 公開 API
 # ---------------------------------------------------------------------------
 
 def register_jobs(scheduler: AsyncIOScheduler | None = None) -> AsyncIOScheduler:
-    """Register all Watson News ETL jobs with the scheduler.
+    """全 Watson News ETL ジョブをスケジューラーに登録する。
 
     Args:
-        scheduler: Existing :class:`AsyncIOScheduler` instance.  A new one is
-            created if not provided.
+        scheduler: 既存の :class:`AsyncIOScheduler` インスタンス。
+            指定しない場合は新規作成される。
 
     Returns:
-        The scheduler (started or passed in).
+        スケジューラー（開始済みまたは渡されたもの）。
     """
     sched = scheduler or _get_scheduler()
 
-    # GDELT — fixed 15-minute interval
+    # GDELT — 固定 15分間隔
     sched.add_job(
         run_gdelt_pipeline,
         trigger=IntervalTrigger(minutes=15),
@@ -66,7 +66,7 @@ def register_jobs(scheduler: AsyncIOScheduler | None = None) -> AsyncIOScheduler
     )
     logger.info("Registered GDELT job", interval="15min")
 
-    # IBM Crawl — dynamic jobs from YAML config
+    # IBM クロール — YAML 設定から動的にジョブを生成
     try:
         targets = load_crawl_targets()
     except Exception as exc:
@@ -92,7 +92,7 @@ def register_jobs(scheduler: AsyncIOScheduler | None = None) -> AsyncIOScheduler
 
 
 def start_scheduler() -> AsyncIOScheduler:
-    """Create, configure, and start the scheduler."""
+    """スケジューラーを作成、設定、起動する。"""
     sched = _get_scheduler()
     register_jobs(sched)
     if not sched.running:
@@ -102,7 +102,7 @@ def start_scheduler() -> AsyncIOScheduler:
 
 
 def stop_scheduler() -> None:
-    """Stop the scheduler if running."""
+    """スケジューラーが実行中であれば停止する。"""
     global _scheduler
     if _scheduler and _scheduler.running:
         _scheduler.shutdown(wait=False)

@@ -499,6 +499,85 @@ make status   # コンテナの起動状態を確認
 make health   # 各サービスのヘルスチェック
 ```
 
+#### `make status` の出力例
+
+**正常時 — すべてのコンテナが `Up` または `(healthy)` 状態:**
+
+```
+Container status:
+NAME              IMAGE                                           CREATED          STATUS                   PORTS
+langflow          langflowai/openrag-langflow:latest              2 minutes ago    Up 2 minutes             0.0.0.0:7860->7860/tcp
+openrag-backend   langflowai/openrag-backend:latest               2 minutes ago    Up 2 minutes             0.0.0.0:8000->8000/tcp
+openrag-frontend  langflowai/openrag-frontend:latest              2 minutes ago    Up 2 minutes             0.0.0.0:3000->3000/tcp
+os                langflowai/openrag-opensearch:latest            2 minutes ago    Up 2 minutes (healthy)   0.0.0.0:9200->9200/tcp
+osdash            opensearchproject/opensearch-dashboards:3.0.0   2 minutes ago    Up 2 minutes             0.0.0.0:5601->5601/tcp
+```
+
+> **Podman をお使いの場合:** 出力の最初に以下のメッセージが表示されますが正常です。
+> ```
+> >>>> Executing external compose provider "/opt/homebrew/bin/podman-compose". Please see podman-compose(1) for how to disable this message. <<<<
+> ```
+
+**エラー例 1 — コンテナが再起動ループ中（メモリ不足など）:**
+
+```
+Container status:
+NAME              IMAGE                                           CREATED         STATUS
+langflow          langflowai/openrag-langflow:latest              5 minutes ago   Up 4 minutes             0.0.0.0:7860->7860/tcp
+openrag-backend   langflowai/openrag-backend:latest               5 minutes ago   Up 4 minutes             0.0.0.0:8000->8000/tcp
+openrag-frontend  langflowai/openrag-frontend:latest              5 minutes ago   Up 4 minutes             0.0.0.0:3000->3000/tcp
+os                langflowai/openrag-opensearch:latest            5 minutes ago   Restarting (1) 3 seconds ago
+osdash            opensearchproject/opensearch-dashboards:3.0.0   5 minutes ago   Up 4 minutes             0.0.0.0:5601->5601/tcp
+```
+
+→ `Restarting` が表示されているコンテナはクラッシュしています。`make logs-os` でログを確認してください。
+
+**エラー例 2 — コンテナが起動していない:**
+
+```
+Container status:
+No containers running
+```
+
+→ `make dev-mac` でコンテナを起動してください。
+
+---
+
+#### `make health` の出力例
+
+**正常時 — すべてのサービスが応答している:**
+
+```
+Health check:
+Backend:    {"status":"ok"}
+Langflow:   {"status":"ok"}
+OpenSearch: You Know, for Search
+```
+
+**エラー例 1 — 一部のサービスが未起動（起動直後など）:**
+
+```
+Health check:
+Backend:    Not responding
+Langflow:   Not responding
+OpenSearch: You Know, for Search
+```
+
+→ コンテナが起動中の可能性があります。1〜2分待ってから再度実行してください。
+
+**エラー例 2 — すべてのサービスが応答しない:**
+
+```
+Health check:
+Backend:    Not responding
+Langflow:   Not responding
+OpenSearch: Not responding
+```
+
+→ Docker/Podman が起動しているか確認し、`make status` でコンテナ状態を確認してください。
+
+---
+
 すべてのサービスが `Up` または `healthy` になるまで1〜2分お待ちください。
 
 ---
@@ -590,6 +669,29 @@ make logs-os     # OpenSearchのみ
 make status      # コンテナ一覧と状態
 make health      # ヘルスチェック
 ```
+
+**`make status` の正常な出力（すべて `Up`）:**
+
+```
+Container status:
+NAME              IMAGE                                           STATUS
+langflow          langflowai/openrag-langflow:latest              Up X minutes
+openrag-backend   langflowai/openrag-backend:latest               Up X minutes
+openrag-frontend  langflowai/openrag-frontend:latest              Up X minutes
+os                langflowai/openrag-opensearch:latest            Up X minutes (healthy)
+osdash            opensearchproject/opensearch-dashboards:3.0.0   Up X minutes
+```
+
+**`make health` の正常な出力（すべてのサービスが応答）:**
+
+```
+Health check:
+Backend:    {"status":"ok"}
+Langflow:   {"status":"ok"}
+OpenSearch: You Know, for Search
+```
+
+いずれかのサービスが `Not responding` と表示される場合は、`make logs` でエラーを確認してください。
 
 ---
 
@@ -709,6 +811,74 @@ make dev-mac
 make stop
 make dev-mac
 ```
+
+---
+
+### Doclingサービスが起動しない / PDFがアップロードできない
+
+バックエンドログ（`make logs-be`）に以下のエラーが繰り返し出力される場合、Doclingサービスが起動していません。
+
+```
+[ERROR] [docling.py:122] Docling health check failed
+                         - url: http://host.containers.internal:5001/health
+                         - error: All connection attempts failed
+INFO:  "GET /docling/health HTTP/1.1" 503 Service Unavailable
+```
+
+**Doclingとは:** PDFや画像からテキストを抽出するドキュメント処理サービスで、**別ターミナルで手動起動**が必要です（自動起動しません）。
+
+#### 対処方法
+
+**新しいターミナルウィンドウを開いて実行します:**
+
+```bash
+make docling
+```
+
+**正常に起動した場合の出力:**
+
+```
+Starting docling-serve...
+Starting docling-serve on auto-detected host:5001...
+Docling-serve is running
+Endpoint: http://host.containers.internal:5001
+PID: 12345
+Docling-serve started! Use 'make docling-stop' to stop it.
+```
+
+起動後、バックエンドログのエラーが止まり、PDFのアップロードが可能になります。
+
+#### Doclingの起動に失敗する場合
+
+**依存ライブラリが未インストール:**
+
+```bash
+# 依存関係を再インストール
+make setup
+# 再度起動
+make docling
+```
+
+**ポート 5001 が使用中:**
+
+```bash
+# 使用中のプロセスを確認
+lsof -i :5001
+
+# プロセスを終了してから再起動
+kill <PID>
+make docling
+```
+
+**Podman で `host.containers.internal` が解決できない場合:**
+
+`.env` に以下を追加してください:
+
+```env
+HOST_DOCKER_INTERNAL=host.containers.internal
+```
+
+> **注意:** Doclingは PDF処理にのみ使用します。テキストファイルや通常のRAGクエリには影響しません。PDFアップロードを使用しない場合は起動不要です。
 
 ---
 

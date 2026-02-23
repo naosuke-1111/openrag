@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM python:3.13-slim
 
 # uv インストール用の curl と RSA キー生成用の openssl をインストールする

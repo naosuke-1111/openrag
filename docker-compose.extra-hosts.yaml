@@ -1,0 +1,54 @@
+# Docker Compose override file for extra_hosts configuration
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.extra-hosts.yaml up
+# Or for GPU: docker-compose -f docker-compose.gpu.yml -f docker-compose.extra-hosts.yaml up
+
+# Define common extra_hosts using YAML anchor
+x-common-extra-hosts: &common-extra-hosts
+  # for watsonx.ai on DeepLearning Box III
+  - "console-openshift-console.apps.watsonxai.lab.japan.ibm.com:9.68.80.192"
+  - "oauth-openshift.apps.watsonxai.lab.japan.ibm.com:9.68.80.192"
+  - "downloads-openshift-console.apps.watsonxai.lab.japan.ibm.com:9.68.80.192"
+  - "cp-console-cpd.apps.watsonxai.lab.japan.ibm.com:9.68.80.192"
+  - "cpd-cpd.apps.watsonxai.lab.japan.ibm.com:9.68.80.192"
+  - "console-openshift-console.apps.watsonxai2.lab.japan.ibm.com:9.68.80.192"
+  - "oauth-openshift.apps.watsonxai2.lab.japan.ibm.com:9.68.80.192"
+  - "downloads-openshift-console.apps.watsonxai2.lab.japan.ibm.com:9.68.80.192"
+  - "cp-console-cpd.apps.watsonxai2.lab.japan.ibm.com:9.68.80.192"
+  - "cpd-cpd.apps.watsonxai2.lab.japan.ibm.com:9.68.80.192"
+  - "console-openshift-console.apps.watsonxai3.lab.japan.ibm.com:9.68.80.192"
+  - "oauth-openshift.apps.watsonxai3.lab.japan.ibm.com:9.68.80.192"
+  - "downloads-openshift-console.apps.watsonxai3.lab.japan.ibm.com:9.68.80.192"
+  - "cp-console-cpd.apps.watsonxai3.lab.japan.ibm.com:9.68.80.192"
+  - "cpd-cpd.apps.watsonxai3.lab.japan.ibm.com:9.68.80.192"
+  - "api.watsonxai3.lab.japan.ibm.com:9.68.80.192"
+  - "console-openshift-console.apps.watsonxai4.lab.japan.ibm.com:9.68.80.192"
+  - "oauth-openshift.apps.watsonxai4.lab.japan.ibm.com:9.68.80.192"
+  - "downloads-openshift-console.apps.watsonxai4.lab.japan.ibm.com:9.68.80.192"
+  - "cp-console-cpd.apps.watsonxai4.lab.japan.ibm.com:9.68.80.192"
+  - "cpd-cpd.apps.watsonxai4.lab.japan.ibm.com:9.68.80.192"
+  - "api.watsonxai4.lab.japan.ibm.com:9.68.80.192"
+  # for watsonx.ai & watsonx Orchestrate on GPU server
+  - "api.watsonx2.lab.japan.ibm.com:9.68.80.145"
+  - "oauth-openshift.apps.watsonx2.lab.japan.ibm.com:9.68.80.145"
+  - "console-openshift-console.apps.watsonx2.lab.japan.ibm.com:9.68.80.145"
+  - "grafana-openshift-monitoring.apps.watsonx2.lab.japan.ibm.com:9.68.80.145"
+  - "thanos-querier-openshift-monitoring.apps.watsonx2.lab.japan.ibm.com:9.68.80.145"
+  - "prometheus-k8s-openshift-monitoring.apps.watsonx2.lab.japan.ibm.com:9.68.80.145"
+  - "alertmanager-main-openshift-monitoring.apps.watsonx2.lab.japan.ibm.com:9.68.80.145"
+  - "cpd-cpd.apps.watsonx2.lab.japan.ibm.com:9.68.80.145"
+
+services:
+  opensearch:
+    extra_hosts: *common-extra-hosts
+
+  dashboards:
+    extra_hosts: *common-extra-hosts
+
+  openrag-backend:
+    extra_hosts: *common-extra-hosts
+
+  openrag-frontend:
+    extra_hosts: *common-extra-hosts
+
+  langflow:
+    extra_hosts: *common-extra-hosts

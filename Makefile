@@ -1,29 +1,29 @@
-# OpenRAG Development Makefile
-# Provides easy commands for development workflow
+# OpenRAG 開発用 Makefile
+# 開発ワークフロー用コマンドを提供する
 
-# Load variables from .env if present so `make` commands pick them up
-# Strip quotes from values to avoid issues with tools that don't handle them like python-dotenv does
+# .env が存在する場合に変数を読み込み、`make` コマンドで利用できるようにする
+# python-dotenv のように引用符を処理しないツールとの問題を避けるため、値から引用符を除去する
 ifneq (,$(wildcard .env))
   include .env
   export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' .env)
-  # Strip single quotes from all exported variables
+  # すべてのエクスポート変数からシングルクォートを除去する
   $(foreach var,$(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' .env),$(eval $(var):=$(shell echo $($(var)) | sed "s/^'//;s/'$$//")))
 endif
 
 hostname ?= 0.0.0.0
 
-# Default values for dev-branch builds (can be overridden via command line)
-# Usage: make dev-branch BRANCH=test-openai-responses REPO=https://github.com/myorg/langflow.git
+# dev-branch ビルドのデフォルト値（コマンドラインから上書き可能）
+# 使用方法: make dev-branch BRANCH=test-openai-responses REPO=https://github.com/myorg/langflow.git
 BRANCH ?= main
 REPO ?= https://github.com/langflow-ai/langflow.git
 
-# Auto-detect container runtime: prefer docker, fall back to podman
+# コンテナランタイムの自動検出: docker を優先し、なければ podman にフォールバックする
 CONTAINER_RUNTIME := $(shell command -v docker >/dev/null 2>&1 && echo "docker" || echo "podman")
 COMPOSE_CMD := $(CONTAINER_RUNTIME) compose
 EXTRA_HOSTS_OPT := -f docker-compose.extra-hosts.yaml
 
 ######################
-# COLOR DEFINITIONS
+# カラー定義
 ######################
 RED=\033[0;31m
 PURPLE=\033[38;2;119;62;255m
@@ -33,11 +33,11 @@ NC=\033[0m
 GREEN=\033[0;32m
 
 ######################
-# REUSABLE FUNCTIONS
+# 再利用可能な関数
 ######################
 
-# JWT OpenSearch test function - tests that JWT authentication works against OpenSearch
-# Usage: $(call test_jwt_opensearch)
+# JWT OpenSearch テスト関数 - JWT 認証が OpenSearch に対して機能することをテストする
+# 使用方法: $(call test_jwt_opensearch)
 define test_jwt_opensearch
 	echo "$(CYAN)=== JWT OpenSearch Authentication Test ===$(NC)"; \
 	echo "$(YELLOW)Generating test JWT token...$(NC)"; \
@@ -66,7 +66,7 @@ define test_jwt_opensearch
 endef
 
 ######################
-# PHONY TARGETS
+# 仮想ターゲット
 ######################
 .PHONY: help check_tools help_docker help_dev help_test help_local help_utils \
        dev dev-cpu dev-local dev-local-cpu dev-mac dev-local-mac stop clean build logs \
@@ -79,13 +79,13 @@ endef
 all: help
 
 ######################
-# UTILITIES
+# ユーティリティ
 ######################
 
-check_tools: ## Verify required tools are installed with correct versions
+check_tools: ## 必要なツールが正しいバージョンでインストールされていることを確認する
 	@echo "$(YELLOW)Checking required tools...$(NC)"
 	@echo ""
-	@# Check Python
+	@# Python の確認
 	@command -v python3 >/dev/null 2>&1 || { echo "$(RED)✗ Python is not installed. Aborting.$(NC)"; exit 1; }
 	@PYTHON_VERSION=$$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'); \
 	PYTHON_MAJOR=$$(echo $$PYTHON_VERSION | cut -d. -f1); \
@@ -95,11 +95,11 @@ check_tools: ## Verify required tools are installed with correct versions
 	else \
 		echo "$(PURPLE)✓ Python $$PYTHON_VERSION$(NC)"; \
 	fi
-	@# Check uv
+	@# uv の確認
 	@command -v uv >/dev/null 2>&1 || { echo "$(RED)✗ uv is not installed. Install: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; exit 1; }
 	@UV_VERSION=$$(uv --version 2>/dev/null | head -1 | awk '{print $$2}' || echo "unknown"); \
 	echo "$(PURPLE)✓ uv $$UV_VERSION$(NC)"
-	@# Check Node.js
+	@# Node.js の確認
 	@command -v node >/dev/null 2>&1 || { echo "$(RED)✗ Node.js is not installed. Aborting.$(NC)"; exit 1; }
 	@NODE_VERSION=$$(node --version | sed 's/v//'); \
 	NODE_MAJOR=$$(echo $$NODE_VERSION | cut -d. -f1); \
@@ -108,25 +108,25 @@ check_tools: ## Verify required tools are installed with correct versions
 	else \
 		echo "$(PURPLE)✓ Node.js $$NODE_VERSION$(NC)"; \
 	fi
-	@# Check npm
+	@# npm の確認
 	@command -v npm >/dev/null 2>&1 || { echo "$(RED)✗ npm is not installed. Aborting.$(NC)"; exit 1; }
 	@NPM_VERSION=$$(npm --version 2>/dev/null || echo "unknown"); \
 	echo "$(PURPLE)✓ npm $$NPM_VERSION$(NC)"
-	@# Check container runtime
+	@# コンテナランタイムの確認
 	@command -v $(CONTAINER_RUNTIME) >/dev/null 2>&1 || { echo "$(RED)✗ $(CONTAINER_RUNTIME) is not installed. Aborting.$(NC)"; exit 1; }
 	@CONTAINER_VERSION=$$($(CONTAINER_RUNTIME) --version 2>/dev/null | head -1 || echo "unknown"); \
 	echo "$(PURPLE)✓ $$CONTAINER_VERSION$(NC)"
-	@# Check make (always present if running this)
+	@# make の確認（このコマンドが実行できている場合は常に存在する）
 	@MAKE_VERSION=$$(make --version 2>/dev/null | head -1 || echo "unknown"); \
 	echo "$(PURPLE)✓ $$MAKE_VERSION$(NC)"
 	@echo ""
 	@echo "$(PURPLE)All required tools are installed and meet version requirements!$(NC)"
 
 ######################
-# HELP SYSTEM
+# ヘルプシステム
 ######################
 
-help: ## Show main help with common commands
+help: ## よく使うコマンドを含むメインヘルプを表示する
 	@echo ''
 	@echo "$(PURPLE)═══════════════════════════════════════════════════════════════════$(NC)"
 	@echo "$(PURPLE)                    OPENRAG MAKEFILE COMMANDS                       $(NC)"
@@ -158,7 +158,7 @@ help: ## Show main help with common commands
 	@echo "$(PURPLE)═══════════════════════════════════════════════════════════════════$(NC)"
 	@echo ''
 
-help_dev: ## Show development environment commands
+help_dev: ## 開発環境コマンドを表示する
 	@echo ''
 	@echo "$(PURPLE)═══════════════════════════════════════════════════════════════════$(NC)"
 	@echo "$(PURPLE)                 DEVELOPMENT ENVIRONMENT COMMANDS                   $(NC)"
@@ -192,7 +192,7 @@ help_dev: ## Show development environment commands
 	@echo "$(PURPLE)═══════════════════════════════════════════════════════════════════$(NC)"
 	@echo ''
 
-help_docker: ## Show Docker and container commands
+help_docker: ## Docker とコンテナコマンドを表示する
 	@echo ''
 	@echo "$(PURPLE)═══════════════════════════════════════════════════════════════════$(NC)"
 	@echo "$(PURPLE)                    DOCKER & CONTAINER COMMANDS                     $(NC)"
@@ -221,7 +221,7 @@ help_docker: ## Show Docker and container commands
 	@echo "$(PURPLE)═══════════════════════════════════════════════════════════════════$(NC)"
 	@echo ''
 
-help_test: ## Show testing commands
+help_test: ## テストコマンドを表示する
 	@echo ''
 	@echo "$(PURPLE)═══════════════════════════════════════════════════════════════════$(NC)"
 	@echo "$(PURPLE)                       TESTING COMMANDS                             $(NC)"
@@ -250,7 +250,7 @@ help_test: ## Show testing commands
 	@echo "$(PURPLE)═══════════════════════════════════════════════════════════════════$(NC)"
 	@echo ''
 
-help_local: ## Show local development commands
+help_local: ## ローカル開発コマンドを表示する
 	@echo ''
 	@echo "$(PURPLE)═══════════════════════════════════════════════════════════════════$(NC)"
 	@echo "$(PURPLE)                   LOCAL DEVELOPMENT COMMANDS                       $(NC)"
@@ -276,7 +276,7 @@ help_local: ## Show local development commands
 	@echo "$(PURPLE)═══════════════════════════════════════════════════════════════════$(NC)"
 	@echo ''
 
-help_utils: ## Show utility commands
+help_utils: ## ユーティリティコマンドを表示する
 	@echo ''
 	@echo "$(PURPLE)═══════════════════════════════════════════════════════════════════$(NC)"
 	@echo "$(PURPLE)                       UTILITY COMMANDS                             $(NC)"
@@ -310,10 +310,10 @@ help_utils: ## Show utility commands
 	@echo ''
 
 ######################
-# DEVELOPMENT ENVIRONMENTS
+# 開発環境
 ######################
 
-dev: ## Start full stack with GPU support
+dev: ## GPU サポートでフルスタックを起動する
 	@echo "$(YELLOW)Starting OpenRAG with GPU support...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.gpu.yml $(EXTRA_HOSTS_OPT) up -d
 	@echo "$(PURPLE)Services started!$(NC)"
@@ -323,7 +323,7 @@ dev: ## Start full stack with GPU support
 	@echo "   $(CYAN)OpenSearch:$(NC) http://localhost:9200"
 	@echo "   $(CYAN)Dashboards:$(NC) http://localhost:5601"
 
-dev-cpu: ## Start full stack with CPU only
+dev-cpu: ## CPU のみでフルスタックを起動する
 	@echo "$(YELLOW)Starting OpenRAG with CPU only...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) up -d
 	@echo "$(PURPLE)Services started!$(NC)"
@@ -333,7 +333,7 @@ dev-cpu: ## Start full stack with CPU only
 	@echo "   $(CYAN)OpenSearch:$(NC) http://localhost:9200"
 	@echo "   $(CYAN)Dashboards:$(NC) http://localhost:5601"
 
-dev-local: ## Start infrastructure for local development
+dev-local: ## ローカル開発用インフラを起動する
 	@echo "$(YELLOW)Starting infrastructure only (for local development)...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.gpu.yml $(EXTRA_HOSTS_OPT) up -d opensearch openrag-backend dashboards langflow
 	@echo "$(PURPLE)Infrastructure started!$(NC)"
@@ -344,7 +344,7 @@ dev-local: ## Start infrastructure for local development
 	@echo ""
 	@echo "$(YELLOW)Now run 'make backend' and 'make frontend' in separate terminals$(NC)"
 
-dev-local-cpu: ## Start infrastructure for local development, with CPU only
+dev-local-cpu: ## ローカル開発用インフラを CPU のみで起動する
 	@echo "$(YELLOW)Starting infrastructure only (for local development)...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) up -d opensearch openrag-backend dashboards langflow
 	@echo "$(PURPLE)Infrastructure started!$(NC)"
@@ -356,16 +356,16 @@ dev-local-cpu: ## Start infrastructure for local development, with CPU only
 	@echo "$(YELLOW)Now run 'make backend' and 'make frontend' in separate terminals$(NC)"
 
 ######################
-# macOS (Apple Silicon / ARM64) DEVELOPMENT
+# macOS（Apple Silicon / ARM64）開発
 ######################
 # docker-compose.mac.yml を使って linux/arm64 イメージでスタック全体を起動する。
 # GPU オーバーライド (docker-compose.gpu.yml) は含まない。
-# Usage: make dev-mac
-#        make dev-local-mac
+# 使用方法: make dev-mac
+#           make dev-local-mac
 
 MAC_COMPOSE_CMD := $(COMPOSE_CMD) -f docker-compose.yml -f docker-compose.mac.yml $(EXTRA_HOSTS_OPT)
 
-dev-mac: ## Start full stack for macOS Apple Silicon (ARM64, no GPU)
+dev-mac: ## macOS Apple Silicon（ARM64、GPU なし）でフルスタックを起動する
 	@echo "$(YELLOW)Starting OpenRAG for macOS Apple Silicon (ARM64)...$(NC)"
 	$(MAC_COMPOSE_CMD) up -d
 	@echo "$(PURPLE)Services started!$(NC)"
@@ -374,7 +374,7 @@ dev-mac: ## Start full stack for macOS Apple Silicon (ARM64, no GPU)
 	@echo "   $(CYAN)OpenSearch:$(NC) http://localhost:9200"
 	@echo "   $(CYAN)Dashboards:$(NC) http://localhost:5601"
 
-dev-local-mac: ## Start infrastructure only for macOS Apple Silicon (ARM64, no GPU)
+dev-local-mac: ## macOS Apple Silicon（ARM64、GPU なし）用インフラのみを起動する
 	@echo "$(YELLOW)Starting infrastructure only (macOS Apple Silicon)...$(NC)"
 	$(MAC_COMPOSE_CMD) up -d opensearch openrag-backend dashboards langflow
 	@echo "$(PURPLE)Infrastructure started!$(NC)"
@@ -386,12 +386,12 @@ dev-local-mac: ## Start infrastructure only for macOS Apple Silicon (ARM64, no G
 	@echo "$(YELLOW)Now run 'make backend' and 'make frontend' in separate terminals$(NC)"
 
 ######################
-# BRANCH DEVELOPMENT
+# ブランチ開発
 ######################
-# Usage: make dev-branch BRANCH=test-openai-responses
-#        make dev-branch BRANCH=feature-x REPO=https://github.com/myorg/langflow.git
+# 使用方法: make dev-branch BRANCH=test-openai-responses
+#           make dev-branch BRANCH=feature-x REPO=https://github.com/myorg/langflow.git
 
-dev-branch: ## Build & run full stack with custom Langflow branch
+dev-branch: ## カスタム Langflow ブランチでフルスタックをビルド & 起動する
 	@echo "$(YELLOW)Building Langflow from branch: $(BRANCH)$(NC)"
 	@echo "   $(CYAN)Repository:$(NC) $(REPO)"
 	@echo ""
@@ -407,7 +407,7 @@ dev-branch: ## Build & run full stack with custom Langflow branch
 	@echo "   $(CYAN)OpenSearch:$(NC)            http://localhost:9200"
 	@echo "   $(CYAN)Dashboards:$(NC)            http://localhost:5601"
 
-dev-branch-cpu: ## Build & run full stack with custom Langflow branch and CPU only mode
+dev-branch-cpu: ## カスタム Langflow ブランチと CPU のみモードでフルスタックをビルド & 起動する
 	@echo "$(YELLOW)Building Langflow from branch: $(BRANCH)$(NC)"
 	@echo "   $(CYAN)Repository:$(NC) $(REPO)"
 	@echo ""
@@ -423,64 +423,64 @@ dev-branch-cpu: ## Build & run full stack with custom Langflow branch and CPU on
 	@echo "   $(CYAN)OpenSearch:$(NC)            http://localhost:9200"
 	@echo "   $(CYAN)Dashboards:$(NC)            http://localhost:5601"
 
-build-langflow-dev: ## Build only the Langflow dev image (no cache)
+build-langflow-dev: ## Langflow 開発イメージのみをビルドする（キャッシュなし）
 	@echo "$(YELLOW)Building Langflow dev image from branch: $(BRANCH)$(NC)"
 	@echo "   $(CYAN)Repository:$(NC) $(REPO)"
 	GIT_BRANCH=$(BRANCH) GIT_REPO=$(REPO) $(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) build --no-cache langflow
 	@echo "$(PURPLE)Langflow dev image built!$(NC)"
 
-stop-dev: ## Stop dev environment containers
+stop-dev: ## 開発環境コンテナを停止する
 	@echo "$(YELLOW)Stopping dev environment containers...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) down
 	@echo "$(PURPLE)Dev environment stopped.$(NC)"
 
-restart-dev: ## Restart dev environment
+restart-dev: ## 開発環境を再起動する
 	@echo "$(YELLOW)Restarting dev environment with branch: $(BRANCH)$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) down
 	GIT_BRANCH=$(BRANCH) GIT_REPO=$(REPO) $(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) up -d
 	@echo "$(PURPLE)Dev environment restarted!$(NC)"
 
-clean-dev: ## Stop dev containers and remove volumes
+clean-dev: ## 開発コンテナを停止してボリュームを削除する
 	@echo "$(YELLOW)Cleaning up dev containers and volumes...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) down -v --remove-orphans
 	@echo "$(PURPLE)Dev environment cleaned!$(NC)"
 
-logs-dev: ## Show all dev container logs
+logs-dev: ## すべての開発コンテナのログを表示する
 	@echo "$(YELLOW)Showing all dev container logs...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) logs -f
 
-logs-lf-dev: ## Show Langflow dev logs
+logs-lf-dev: ## Langflow 開発ログを表示する
 	@echo "$(YELLOW)Showing Langflow dev logs...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) logs -f langflow
 
-shell-lf-dev: ## Shell into Langflow dev container
+shell-lf-dev: ## Langflow 開発コンテナのシェルを開く
 	@echo "$(YELLOW)Opening shell in Langflow dev container...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) exec langflow /bin/bash
 
-status-dev: ## Show dev container status
+status-dev: ## 開発コンテナのステータスを表示する
 	@echo "$(PURPLE)Dev container status:$(NC)"
 	@$(COMPOSE_CMD) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) ps 2>/dev/null || echo "$(YELLOW)No dev containers running$(NC)"
 
 ######################
-# CONTAINER MANAGEMENT
+# コンテナ管理
 ######################
 
-stop: ## Stop and remove all OpenRAG containers
+stop: ## すべての OpenRAG コンテナを停止して削除する
 	@echo "$(YELLOW)Stopping and removing all OpenRAG containers...$(NC)"
 	@$(COMPOSE_CMD) $(OPENRAG_ENV_FILE) -f docker-compose.yml $(EXTRA_HOSTS_OPT) down --remove-orphans 2>/dev/null || true
 	@$(COMPOSE_CMD) $(OPENRAG_ENV_FILE) -f docker-compose.dev.yml $(EXTRA_HOSTS_OPT) down --remove-orphans 2>/dev/null || true
 	@$(CONTAINER_RUNTIME) ps -a --filter "name=openrag" --filter "name=langflow" --filter "name=opensearch" -q | xargs -r $(CONTAINER_RUNTIME) rm -f 2>/dev/null || true
 	@echo "$(PURPLE)All OpenRAG containers stopped and removed.$(NC)"
 
-restart: stop dev ## Restart all containers
+restart: stop dev ## すべてのコンテナを再起動する
 
-clean: stop ## Stop containers and remove volumes
+clean: stop ## コンテナを停止してボリュームを削除する
 	@echo "$(YELLOW)Cleaning up containers and volumes...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) down -v --remove-orphans
 	$(CONTAINER_RUNTIME) system prune -f
 	@echo "$(PURPLE)Cleanup complete!$(NC)"
 
-factory-reset: ## Complete reset (stop, remove volumes, clear data, remove images)
+factory-reset: ## 完全リセット（停止、ボリューム削除、データ削除、イメージ削除）
 	@echo "$(RED)WARNING: This will completely reset OpenRAG!$(NC)"; \
 	echo "$(YELLOW)This will:$(NC)"; \
 	echo "  - Stop all containers"; \
@@ -524,129 +524,129 @@ factory-reset: ## Complete reset (stop, remove volumes, clear data, remove image
 	echo "$(CYAN)Run 'make dev' or 'make dev-cpu' to start fresh.$(NC)";
 
 ######################
-# LOCAL DEVELOPMENT
+# ローカル開発
 ######################
 
-backend: ## Run backend locally
+backend: ## バックエンドをローカルで実行する
 	@echo "$(YELLOW)Starting backend locally...$(NC)"
 	@if [ ! -f .env ]; then echo "$(RED).env file not found. Copy .env.example to .env first$(NC)"; exit 1; fi
 	uv run python src/main.py
 
-frontend: ## Run frontend locally
+frontend: ## フロントエンドをローカルで実行する
 	@echo "$(YELLOW)Starting frontend locally...$(NC)"
 	@if [ ! -d "frontend/node_modules" ]; then echo "$(YELLOW)Installing frontend dependencies first...$(NC)"; cd frontend && npm install; fi
 	cd frontend && npx next dev \
 		--hostname $(hostname)
 
-docling: ## Start docling-serve for document processing
+docling: ## ドキュメント処理用の docling-serve を起動する
 	@echo "$(YELLOW)Starting docling-serve...$(NC)"
 	@uv run python scripts/docling_ctl.py start
 	@echo "$(PURPLE)Docling-serve started! Use 'make docling-stop' to stop it.$(NC)"
 
-docling-stop: ## Stop docling-serve
+docling-stop: ## docling-serve を停止する
 	@echo "$(YELLOW)Stopping docling-serve...$(NC)"
 	@uv run python scripts/docling_ctl.py stop
 	@echo "$(PURPLE)Docling-serve stopped.$(NC)"
 
 ######################
-# INSTALLATION
+# インストール
 ######################
 
-install: install-be install-fe ## Install all dependencies
+install: install-be install-fe ## すべての依存関係をインストールする
 	@echo "$(PURPLE)All dependencies installed!$(NC)"
 
-install-be: ## Install backend dependencies
+install-be: ## バックエンド依存関係をインストールする
 	@echo "$(YELLOW)Installing backend dependencies...$(NC)"
 	uv sync
 	@echo "$(PURPLE)Backend dependencies installed.$(NC)"
 
-install-fe: ## Install frontend dependencies
+install-fe: ## フロントエンド依存関係をインストールする
 	@echo "$(YELLOW)Installing frontend dependencies...$(NC)"
 	cd frontend && npm install
 	@echo "$(PURPLE)Frontend dependencies installed.$(NC)"
 
 ######################
-# DOCKER BUILD
+# Docker ビルド
 ######################
 
-build: build-os build-be build-fe build-lf ## Build all Docker images locally
+build: build-os build-be build-fe build-lf ## すべての Docker イメージをローカルでビルドする
 	@echo "$(PURPLE)All images built successfully!$(NC)"
 
-build-os: ## Build OpenSearch Docker image
+build-os: ## OpenSearch Docker イメージをビルドする
 	@echo "$(YELLOW)Building OpenSearch image...$(NC)"
 	$(CONTAINER_RUNTIME) build -t langflowai/openrag-opensearch:latest -f Dockerfile .
 	@echo "$(PURPLE)OpenSearch image built.$(NC)"
 
-build-be: ## Build backend Docker image
+build-be: ## バックエンド Docker イメージをビルドする
 	@echo "$(YELLOW)Building backend image...$(NC)"
 	$(CONTAINER_RUNTIME) build -t langflowai/openrag-backend:latest -f Dockerfile.backend .
 	@echo "$(PURPLE)Backend image built.$(NC)"
 
-build-fe: ## Build frontend Docker image
+build-fe: ## フロントエンド Docker イメージをビルドする
 	@echo "$(YELLOW)Building frontend image...$(NC)"
 	$(CONTAINER_RUNTIME) build -t langflowai/openrag-frontend:latest -f Dockerfile.frontend .
 	@echo "$(PURPLE)Frontend image built.$(NC)"
 
-build-lf: ## Build Langflow Docker image
+build-lf: ## Langflow Docker イメージをビルドする
 	@echo "$(YELLOW)Building Langflow image...$(NC)"
 	$(CONTAINER_RUNTIME) build -t langflowai/openrag-langflow:latest -f Dockerfile.langflow .
 	@echo "$(PURPLE)Langflow image built.$(NC)"
 
 ######################
-# LOGGING
+# ログ
 ######################
 
-logs: ## Show logs from all containers
+logs: ## すべてのコンテナのログを表示する
 	@echo "$(YELLOW)Showing all container logs...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) logs -f
 
-logs-be: ## Show backend container logs
+logs-be: ## バックエンドコンテナのログを表示する
 	@echo "$(YELLOW)Showing backend logs...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) logs -f openrag-backend
 
-logs-fe: ## Show frontend container logs
+logs-fe: ## フロントエンドコンテナのログを表示する
 	@echo "$(YELLOW)Showing frontend logs...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) logs -f openrag-frontend
 
-logs-lf: ## Show langflow container logs
+logs-lf: ## langflow コンテナのログを表示する
 	@echo "$(YELLOW)Showing langflow logs...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) logs -f langflow
 
-logs-os: ## Show opensearch container logs
+logs-os: ## opensearch コンテナのログを表示する
 	@echo "$(YELLOW)Showing opensearch logs...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) logs -f opensearch
 
 ######################
-# SHELL ACCESS
+# シェルアクセス
 ######################
 
-shell-be: ## Shell into backend container
+shell-be: ## バックエンドコンテナのシェルを開く
 	@echo "$(YELLOW)Opening shell in backend container...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) exec openrag-backend /bin/bash
 
-shell-lf: ## Shell into langflow container
+shell-lf: ## langflow コンテナのシェルを開く
 	@echo "$(YELLOW)Opening shell in langflow container...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) exec langflow /bin/bash
 
-shell-os: ## Shell into opensearch container
+shell-os: ## opensearch コンテナのシェルを開く
 	@echo "$(YELLOW)Opening shell in opensearch container...$(NC)"
 	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) exec opensearch /bin/bash
 
 ######################
-# TESTING
+# テスト
 ######################
 
-test: ## Run all backend tests
+test: ## すべてのバックエンドテストを実行する
 	@echo "$(YELLOW)Running all backend tests...$(NC)"
 	uv run pytest tests/ -v
 	@echo "$(PURPLE)Tests complete.$(NC)"
 
-test-integration: ## Run integration tests (requires infrastructure)
+test-integration: ## 統合テストを実行する（インフラが必要）
 	@echo "$(YELLOW)Running integration tests (requires infrastructure)...$(NC)"
 	@echo "$(CYAN)Make sure to run 'make dev-local' first!$(NC)"
 	uv run pytest tests/integration/ -v
 
-test-ci: ## Start infra, run integration + SDK tests, tear down (uses DockerHub images)
+test-ci: ## インフラを起動し、統合テスト + SDK テストを実行して停止する（DockerHub イメージを使用）
 	@set -e; \
 	echo "$(YELLOW)Installing test dependencies...$(NC)"; \
 	uv sync --group dev; \
@@ -732,7 +732,7 @@ test-ci: ## Start infra, run integration + SDK tests, tear down (uses DockerHub 
 	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) down -v 2>/dev/null || true; \
 	exit $$TEST_RESULT
 
-test-ci-local: ## Same as test-ci but builds all images locally
+test-ci-local: ## test-ci と同じだが、すべてのイメージをローカルでビルドする
 	@set -e; \
 	echo "$(YELLOW)Installing test dependencies...$(NC)"; \
 	uv sync --group dev; \
@@ -829,10 +829,10 @@ test-ci-local: ## Same as test-ci but builds all images locally
 	$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) down -v 2>/dev/null || true; \
 	exit $$TEST_RESULT
 
-test-os-jwt: ## Test JWT authentication against OpenSearch
+test-os-jwt: ## OpenSearch に対して JWT 認証をテストする
 	@$(call test_jwt_opensearch)
 
-test-sdk: ## Run SDK integration tests (requires running OpenRAG at localhost:3000)
+test-sdk: ## SDK 統合テストを実行する（localhost:3000 で OpenRAG が実行中であることが必要）
 	@echo "$(YELLOW)Running SDK integration tests...$(NC)"
 	@echo "$(CYAN)Make sure OpenRAG is running at localhost:3000 (make dev)$(NC)"
 	@echo ""
@@ -843,45 +843,45 @@ test-sdk: ## Run SDK integration tests (requires running OpenRAG at localhost:30
 	cd sdks/typescript && npm install && npm run build && OPENRAG_URL=http://localhost:3000 npm test
 	@echo "$(PURPLE)SDK tests complete.$(NC)"
 
-lint: ## Run linting checks
+lint: ## リンティングチェックを実行する
 	@echo "$(YELLOW)Running linting checks...$(NC)"
 	cd frontend && npm run lint
 	@echo "$(PURPLE)Frontend linting complete.$(NC)"
 
 ######################
-# STATUS & HEALTH
+# ステータス & ヘルス
 ######################
 
-status: ## Show container status
+status: ## コンテナのステータスを表示する
 	@echo "$(PURPLE)Container status:$(NC)"
 	@$(COMPOSE_CMD) -f docker-compose.yml $(EXTRA_HOSTS_OPT) ps 2>/dev/null || echo "$(YELLOW)No containers running$(NC)"
 
-health: ## Check health of all services
+health: ## すべてのサービスのヘルスチェックを行う
 	@echo "$(PURPLE)Health check:$(NC)"
 	@echo "$(CYAN)Backend:$(NC)    $$(curl -s http://localhost:8000/health 2>/dev/null || echo '$(RED)Not responding$(NC)')"
 	@echo "$(CYAN)Langflow:$(NC)   $$(curl -s http://localhost:7860/health 2>/dev/null || echo '$(RED)Not responding$(NC)')"
 	@echo "$(CYAN)OpenSearch:$(NC) $$(curl -s -k -u admin:$${OPENSEARCH_PASSWORD} https://localhost:9200 2>/dev/null | jq -r .tagline 2>/dev/null || echo '$(RED)Not responding$(NC)')"
 
 ######################
-# DATABASE OPERATIONS
+# データベース操作
 ######################
 
-db-reset: ## Reset OpenSearch indices
+db-reset: ## OpenSearch インデックスをリセットする
 	@echo "$(YELLOW)Resetting OpenSearch indices...$(NC)"
 	curl -X DELETE "http://localhost:9200/documents" -u admin:$${OPENSEARCH_PASSWORD} || true
 	curl -X DELETE "http://localhost:9200/knowledge_filters" -u admin:$${OPENSEARCH_PASSWORD} || true
 	@echo "$(PURPLE)Indices reset. Restart backend to recreate.$(NC)"
 
-clear-os-data: ## Clear OpenSearch data directory
+clear-os-data: ## OpenSearch データディレクトリをクリアする
 	@echo "$(YELLOW)Clearing OpenSearch data directory...$(NC)"
 	@uv run python scripts/clear_opensearch_data.py
 	@echo "$(PURPLE)OpenSearch data cleared.$(NC)"
 
 ######################
-# FLOW MANAGEMENT
+# フロー管理
 ######################
 
-flow-upload: ## Upload flow to Langflow
+flow-upload: ## Langflow にフローをアップロードする
 	@echo "$(YELLOW)Uploading flow to Langflow...$(NC)"
 	@if [ -z "$(FLOW_FILE)" ]; then echo "$(RED)Usage: make flow-upload FLOW_FILE=path/to/flow.json$(NC)"; exit 1; fi
 	curl -X POST "http://localhost:7860/api/v1/flows" \
@@ -890,10 +890,10 @@ flow-upload: ## Upload flow to Langflow
 	@echo "$(PURPLE)Flow uploaded.$(NC)"
 
 ######################
-# SETUP
+# セットアップ
 ######################
 
-setup: check_tools ## Set up development environment
+setup: check_tools ## 開発環境をセットアップする
 	@echo "$(YELLOW)Setting up development environment...$(NC)"
 	@if [ ! -f .env ]; then cp .env.example .env && echo "$(PURPLE)Created .env from template$(NC)"; fi
 	@$(MAKE) install

@@ -1,10 +1,10 @@
-# Docker Compose override file for extra_hosts configuration
-# Usage: docker-compose -f docker-compose.yml -f docker-compose.extra-hosts.yaml up
-# Or for GPU: docker-compose -f docker-compose.gpu.yml -f docker-compose.extra-hosts.yaml up
+# extra_hosts 設定用 Docker Compose オーバーライドファイル
+# 使用方法: docker-compose -f docker-compose.yml -f docker-compose.extra-hosts.yaml up
+# GPU の場合: docker-compose -f docker-compose.gpu.yml -f docker-compose.extra-hosts.yaml up
 
-# Define common extra_hosts using YAML anchor
+# YAML アンカーを使用して共通の extra_hosts を定義する
 x-common-extra-hosts: &common-extra-hosts
-  # for watsonx.ai on DeepLearning Box III
+  # DeepLearning Box III 上の watsonx.ai 用
   - "console-openshift-console.apps.watsonxai.lab.japan.ibm.com:9.68.80.192"
   - "oauth-openshift.apps.watsonxai.lab.japan.ibm.com:9.68.80.192"
   - "downloads-openshift-console.apps.watsonxai.lab.japan.ibm.com:9.68.80.192"
@@ -27,7 +27,7 @@ x-common-extra-hosts: &common-extra-hosts
   - "cp-console-cpd.apps.watsonxai4.lab.japan.ibm.com:9.68.80.192"
   - "cpd-cpd.apps.watsonxai4.lab.japan.ibm.com:9.68.80.192"
   - "api.watsonxai4.lab.japan.ibm.com:9.68.80.192"
-  # for watsonx.ai & watsonx Orchestrate on GPU server
+  # GPU サーバー上の watsonx.ai & watsonx Orchestrate 用
   - "api.watsonx2.lab.japan.ibm.com:9.68.80.145"
   - "oauth-openshift.apps.watsonx2.lab.japan.ibm.com:9.68.80.145"
   - "console-openshift-console.apps.watsonx2.lab.japan.ibm.com:9.68.80.145"

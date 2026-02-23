@@ -1,7 +1,7 @@
 FROM python:3.13-slim
 
-# Install curl for uv installation and openssl for RSA key generation
-# Also install git for potential dependencies and build-essential for native compilations
+# uv インストール用の curl と RSA キー生成用の openssl をインストールする
+# 依存関係のために git も、ネイティブコンパイルのために build-essential もインストールする
 RUN apt-get update && apt-get install -y \
     curl \
     openssl \
@@ -9,27 +9,27 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv
+# uv のインストール
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
-# Set working directory
+# 作業ディレクトリの設定
 WORKDIR /app
 
-# Copy Python dependencies
+# Python 依存関係のコピー
 COPY pyproject.toml uv.lock ./
 RUN uv sync
 
-# Copy sample document and warmup script for docling
+# docling 用のサンプルドキュメントとウォームアップスクリプトをコピーする
 COPY openrag-documents/warmup_ocr.pdf ./
 COPY warm_up_docling.py ./
-RUN uv run docling-tools models download 
-RUN uv run python - <<'PY'
+RUN uv run docling-tools models download
+RUN uv run python - <<’PY’
 import pathlib, easyocr
 cache = pathlib.Path("/root/.EasyOCR/model")
 cache.mkdir(parents=True, exist_ok=True)
-# Prewarm the detector + recog for Docling’s default langs
-easyocr.Reader(['fr','de','es','en'],
+# Docling のデフォルト言語の検出器と認識器を事前ウォームアップする
+easyocr.Reader([‘fr’,’de’,’es’,’en’],
                download_enabled=True,
                model_storage_directory=str(cache))
 print("EasyOCR cache ready at", cache)
@@ -40,12 +40,12 @@ PY
 
 #ENV EASYOCR_MODULE_PATH=~/.cache/docling/models/EasyOcr/
 
-# Copy Python source and flows
+# Python ソースコードとフローのコピー
 COPY src/ ./src/
 COPY flows/ ./flows/
 
-# Expose backend port
+# バックエンドポートの公開
 EXPOSE 8000
 
-# Start backend in foreground
+# バックエンドをフォアグラウンドで起動する
 CMD ["uv", "run", "python", "src/main.py"]

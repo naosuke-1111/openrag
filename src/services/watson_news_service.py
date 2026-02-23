@@ -169,19 +169,14 @@ async def ensure_indices() -> None:
             },
         }
         for idx, body in index_mappings.items():
-            try:
-                exists = await os_client.indices.exists(index=idx)
-                if not exists:
-                    await os_client.indices.create(index=idx, body=body)
-                    logger.info("Created OpenSearch index", index=idx)
-                else:
-                    logger.debug("OpenSearch index already exists", index=idx)
-            except Exception as exc:
-                logger.error(
-                    "Failed to create OpenSearch index",
-                    index=idx,
-                    error=str(exc),
-                )
+            exists = await os_client.indices.exists(index=idx)
+            if not exists:
+                await os_client.indices.create(index=idx, body=body)
+                logger.info("Created OpenSearch index", index=idx)
+            else:
+                logger.debug("OpenSearch index already exists", index=idx)
+    except Exception as exc:
+        logger.error("Failed to ensure Watson News indices", error=str(exc))
     finally:
         await os_client.close()
 

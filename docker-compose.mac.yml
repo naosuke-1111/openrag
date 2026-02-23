@@ -1,6 +1,6 @@
-# macOS (Apple Silicon / ARM64) development override
+# macOS（Apple Silicon / ARM64）開発用オーバーライド
 #
-# Usage:
+# 使用方法:
 #   docker compose -f docker-compose.yml -f docker-compose.mac.yml up -d
 #   または Makefile ターゲット:
 #   make dev-mac

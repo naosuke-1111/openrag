@@ -1,20 +1,20 @@
 FROM node:20.20.0-slim
 
-# Set working directory
+# 作業ディレクトリの設定
 WORKDIR /app
 
-# Copy frontend dependencies
+# フロントエンド依存関係のコピー
 COPY frontend/package*.json ./
 RUN npm install
 
-# Copy frontend source
+# フロントエンドソースのコピー
 COPY frontend/ ./
 
-# Build frontend
-RUN npm run build 
+# フロントエンドのビルド
+RUN npm run build
 
-# Expose frontend port
+# フロントエンドポートの公開
 EXPOSE 3000
 
-# Start frontend in foreground
+# フロントエンドをフォアグラウンドで起動する
 CMD ["npm", "start"]

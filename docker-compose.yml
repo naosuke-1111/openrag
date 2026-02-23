@@ -10,19 +10,19 @@ services:
     environment:
       - discovery.type=single-node
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD}
-    # Run security setup in background after OpenSearch starts
+    # OpenSearch 起動後にバックグラウンドでセキュリティセットアップを実行する
     command: >
       bash -c "
-        # Ensure data directory has correct permissions
+        # データディレクトリのパーミッションが正しいことを確認する
         sudo chown -R opensearch:opensearch /usr/share/opensearch/data || true
 
-        # Start OpenSearch in background
+        # OpenSearch をバックグラウンドで起動する
         /usr/share/opensearch/opensearch-docker-entrypoint.sh opensearch &
 
-        # Wait a bit for OpenSearch to start, then apply security config
+        # OpenSearch の起動を少し待ってからセキュリティ設定を適用する
         sleep 10 && /usr/share/opensearch/setup-security.sh &
 
-        # Wait for background processes
+        # バックグラウンドプロセスの待機
         wait
       "
     ports:
@@ -89,7 +89,7 @@ services:
       - INGESTION_TIMEOUT=${INGESTION_TIMEOUT:-3600}
       - UPLOAD_BATCH_SIZE=${UPLOAD_BATCH_SIZE:-25}
       - MAX_WORKERS=${MAX_WORKERS:-4}
-      # Watson News — watsonx.ai (on-prem OCP)
+      # Watson News — watsonx.ai（オンプレミス OCP）
       - WATSONX_API_URL=${WATSONX_API_URL:-}
       - WATSONX_AUTH_URL=${WATSONX_AUTH_URL:-}
       - WATSONX_API_VERSION=${WATSONX_API_VERSION:-2025-02-06}
@@ -103,7 +103,7 @@ services:
       - GDELT_QUERY_KEYWORD=${GDELT_QUERY_KEYWORD:-IBM}
       - GDELT_MAX_RECORDS=${GDELT_MAX_RECORDS:-250}
       - GDELT_TIMESPAN=${GDELT_TIMESPAN:-15min}
-      # Watson News — IBM crawler
+      # Watson News — IBM クローラー
       - WATSON_NEWS_CRAWL_CONFIG=${WATSON_NEWS_CRAWL_CONFIG:-}
       - IBM_CRAWL_USER_AGENT=${IBM_CRAWL_USER_AGENT:-WatsonNewsBot/1.0}
       # Watson News — Box

@@ -5,6 +5,7 @@ import {
   FileText,
   Library,
   MessageSquare,
+  Newspaper,
   Plus,
   Settings2,
   Trash2,
@@ -203,6 +204,13 @@ export function Navigation({
       icon: Library,
       href: "/knowledge",
       active: pathname.startsWith("/knowledge"),
+    },
+    // Watson News: IBM関連ニュース・Box文書の横断検索・ダッシュボード
+    {
+      label: "Watson News",
+      icon: Newspaper,
+      href: "/watson-news",
+      active: pathname.startsWith("/watson-news"),
     },
     {
       label: "Settings",

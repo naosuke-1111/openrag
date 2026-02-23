@@ -1,4 +1,4 @@
-"""Cleaning step: HTML stripping, deduplication, and language detection."""
+"""クリーニング処理: HTML 除去、重複排除、言語検出。"""
 
 import re
 import unicodedata
@@ -17,7 +17,7 @@ _MIN_BODY_CHARS = 100
 
 
 def _strip_html(raw: str) -> str:
-    """Convert HTML to plain text, stripping tags and markdown-ifying links."""
+    """HTML をプレーンテキストに変換し、タグを除去してリンクを Markdown 形式にする。"""
     converter = html2text.HTML2Text()
     converter.ignore_links = True
     converter.ignore_images = True
@@ -41,10 +41,10 @@ def _detect_language(text: str) -> str | None:
 
 
 def clean_news_article(doc: ConnectorDocument) -> dict[str, Any] | None:
-    """Clean a raw news article ConnectorDocument.
+    """生のニュース記事 ConnectorDocument をクリーニングする。
 
-    Returns a dict representing a ``watson_news_clean`` record, or ``None``
-    if the article is a duplicate or in a non-target language.
+    ``watson_news_clean`` レコードを表す dict を返す。
+    記事が重複している場合や対象外の言語の場合は ``None`` を返す。
     """
     mimetype = doc.mimetype or ""
     raw = doc.content.decode(errors="replace")
@@ -81,15 +81,15 @@ def clean_news_article(doc: ConnectorDocument) -> dict[str, Any] | None:
 
 
 def clean_box_document(doc: ConnectorDocument) -> list[dict[str, Any]]:
-    """Clean a Box document by extracting plain text from bytes.
+    """Box ドキュメントをバイト列からプレーンテキストに変換してクリーニングする。
 
-    The heavy lifting (PDF / Office extraction) is done upstream by docling.
-    Here we normalise whitespace and split into logical chunks.
+    重い処理（PDF / Office 抽出）は上流の docling で行われる。
+    ここでは空白を正規化し、論理的なチャンクに分割する。
     """
     raw = doc.content.decode(errors="replace")
     body = _normalize_whitespace(raw)
 
-    # Simple paragraph-based chunking
+    # 段落ベースのシンプルなチャンク分割
     paragraphs = [p.strip() for p in body.split("\n\n") if len(p.strip()) >= 30]
 
     return [

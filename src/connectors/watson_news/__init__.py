@@ -1,1 +1,1 @@
-"""Watson News connectors: GDELT, IBM crawl, ETL pipeline, and scheduler."""
+"""Watson News コネクター: GDELT、IBM クロール、ETL パイプライン、スケジューラー。"""

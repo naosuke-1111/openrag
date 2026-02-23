@@ -9,7 +9,7 @@
 1. [システム要件](#1-システム要件)
 2. [前提ツールのインストール](#2-前提ツールのインストール)
    - 2.1 [Homebrew](#21-homebrew)
-   - 2.2 [Docker Desktop](#22-docker-desktop)
+   - 2.2 [コンテナランタイム（Docker Desktop または Podman）](#22-コンテナランタイムdocker-desktop-または-podman)
    - 2.3 [uv（Pythonパッケージマネージャー）](#23-uvpythonパッケージマネージャー)
    - 2.4 [Python 3.13](#24-python-313)
    - 2.5 [Node.js](#25-nodejs)
@@ -62,9 +62,14 @@ brew --version
 
 ---
 
-### 2.2 Docker Desktop
+### 2.2 コンテナランタイム（Docker Desktop または Podman）
 
-OpenRAGのインフラ（OpenSearch、Langflowなど）はDockerコンテナで動作します。
+OpenRAGのインフラ（OpenSearch、Langflowなど）はコンテナで動作します。
+**Docker Desktop** または **Podman** のどちらかをインストールしてください。Makefileはどちらも自動検出します。
+
+---
+
+#### オプション A: Docker Desktop（推奨・簡単）
 
 1. [Docker Desktop for Mac](https://docs.docker.com/desktop/install/mac-install/) からインストーラーをダウンロード
    - Apple Siliconの場合: **Apple Chip** 版を選択
@@ -86,6 +91,70 @@ OpenRAGのインフラ（OpenSearch、Langflowなど）はDockerコンテナで�
 docker --version
 docker compose version
 ```
+
+---
+
+#### オプション B: Podman + Compose（Docker代替）
+
+Podmanはデーモンレス・rootlessで動作するOCIコンテナランタイムです。企業ポリシーなどの理由でDockerが使えない場合に選択してください。
+
+Composeプラグインは **`podman compose`**（組み込み）と **`podman-compose`**（Python製）の2種類があります。いずれか1つインストールすれば動作します。
+
+**① Podman 本体のインストール:**
+
+```bash
+brew install podman
+```
+
+**② Podman Machine の初期化（macOS必須）:**
+
+macOSではLinux VMが必要です。8GB RAM・4 CPU を割り当てて作成します。
+
+```bash
+# 既存マシンがある場合は削除
+podman machine stop 2>/dev/null || true
+podman machine rm   2>/dev/null || true
+
+# 8GB RAM・4 CPU で新しいマシンを作成・起動
+podman machine init --memory 8192 --cpus 4
+podman machine start
+```
+
+> **注意:** メモリが不足するとOpenSearchやLangflowがクラッシュします。16GB RAM搭載MacBookでは `--memory 12288`（12GB）推奨です。
+
+**③ Compose プラグインのインストール（どちらか1つ）:**
+
+| 方法 | コマンド | 特徴 |
+|------|---------|------|
+| `podman compose`（組み込み） | `brew install podman-compose` | Podman公式ラッパー |
+| `podman-compose`（Python製） | `pip install podman-compose` または `brew install podman-compose` | より互換性が高い |
+
+**組み込みCompose（推奨）:**
+```bash
+# podman compose は podman >= 4.7 で組み込み済み
+podman compose version
+```
+
+**Python製 podman-compose（代替）:**
+```bash
+pip install podman-compose
+# または
+brew install podman-compose
+
+podman-compose --version
+```
+
+**④ インストール確認:**
+
+```bash
+podman --version
+podman machine list        # マシンが Running 状態であることを確認
+podman compose version     # 組み込みComposeの場合
+# または
+podman-compose --version   # Python製の場合
+```
+
+> **Makefileの動作:** OpenRAGのMakefileはDockerが見つからない場合、自動的にPodmanを使用します。追加設定は不要です。
 
 ---
 
@@ -170,11 +239,9 @@ code .env         # VS Code で開く（要インストール）
 
 ### 必須の設定項目
 
-```env
-# LLMプロバイダーのAPIキー（最低1つ必須）
-OPENAI_API_KEY=sk-...           # OpenAI を使う場合
-ANTHROPIC_API_KEY=sk-ant-...    # Anthropic Claude を使う場合
+#### OpenSearch・Langflow（共通）
 
+```env
 # OpenSearch 管理者パスワード（必須）
 # 以下のすべてを含む8文字以上: 大文字・小文字・数字・記号
 OPENSEARCH_PASSWORD=MyStr0ng!Pass
@@ -191,15 +258,72 @@ LANGFLOW_SUPERUSER_PASSWORD=MyStr0ng!Pass
 > - 数字1文字以上
 > - 記号（`!@#$%` など）1文字以上
 
+---
+
+#### LLM / Embedding: オンプレミス OCP watsonx.ai を使用する場合
+
+このプロジェクトでは **IBM Cloud Pak for Data（CP4D）上の watsonx.ai** をLLMおよびEmbeddingプロバイダーとして使用します。
+
+```env
+# ─── LLM 設定 ───────────────────────────────────────────────
+# LLMプロバイダー（on-prem OCP watsonx.ai 経由で OpenAI互換エンドポイントを使用）
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-oss-120b
+
+# ─── Embedding 設定 ─────────────────────────────────────────
+# EmbeddingプロバイダーとモデルはIBM Graniteを使用
+EMBEDDING_PROVIDER=ibm
+EMBEDDING_MODEL=granite-embedding-107m-multilingual
+
+# ─── watsonx.ai on-prem OCP 接続設定 ────────────────────────
+# CP4D インスタンスのベースURL（例: https://cpd.your-cluster.example.com）
+WATSONX_API_URL=https://<CP4D_HOST>
+
+# CP4D 認証エンドポイント（例: https://cpd.your-cluster.example.com/icp4d-api/v1/authorize）
+WATSONX_AUTH_URL=https://<CP4D_HOST>/icp4d-api/v1/authorize
+
+# CP4D のユーザー名とパスワード
+WATSONX_USERNAME=<your-cp4d-username>
+WATSONX_PASSWORD=<your-cp4d-password>
+
+# watsonx.ai プロジェクトID（CP4DのプロジェクトページのURLから取得）
+WATSONX_PROJECT_ID=<your-project-id>
+
+# API バージョン（通常変更不要）
+WATSONX_API_VERSION=2025-02-06
+
+# 自己署名証明書を使用している場合は false に設定
+WATSONX_SSL_VERIFY=true
+# CA証明書バンドルのパス（自己署名の場合に指定、不要なら空欄）
+WATSONX_CA_BUNDLE_PATH=
+```
+
+> **`WATSONX_API_KEY` について:** API Keyを使う認証方式（IBMCloud SaaS）の場合は `WATSONX_API_KEY` を設定します。CP4Dのユーザー名/パスワード認証を使う場合は `WATSONX_USERNAME` / `WATSONX_PASSWORD` を設定します。両方は不要です。
+
+> **Watson News用モデル設定:** Watson Newsの記事エンリッチメントとEmbeddingに使用するモデルも同じモデルを参照するよう以下を設定してください:
+> ```env
+> WATSON_NEWS_ENRICH_MODEL=openai/gpt-oss-120b
+> WATSON_NEWS_EMBED_MODEL=ibm/granite-embedding-107m-multilingual
+> ```
+
+---
+
+#### 他のLLMプロバイダーを使う場合（参考）
+
+| プロバイダー | 設定例 |
+|-------------|-------|
+| OpenAI（クラウド） | `OPENAI_API_KEY=sk-...` |
+| Anthropic Claude | `ANTHROPIC_API_KEY=sk-ant-...` |
+| Ollama（ローカル） | `OLLAMA_ENDPOINT=http://localhost:11434` |
+
+---
+
 ### オプション設定
 
 ```env
 # ポート設定（他サービスと競合する場合に変更）
 FRONTEND_PORT=3000    # フロントエンド（デフォルト: 3000）
 LANGFLOW_PORT=7860    # Langflow（デフォルト: 7860）
-
-# ローカルでOllamaを使う場合
-OLLAMA_ENDPOINT=http://localhost:11434
 ```
 
 ---
@@ -221,7 +345,7 @@ Checking required tools...
 ✓ uv x.x.x
 ✓ Node.js 20.x.x
 ✓ npm x.x.x
-✓ Docker version x.x.x
+✓ Docker version x.x.x    # Podmanの場合は "podman version x.x.x"
 ✓ Make x.x.x
 
 All required tools are installed and meet version requirements!
@@ -392,13 +516,74 @@ lsof -i :7860   # ポート7860を使っているプロセスを表示
 
 ---
 
-### Dockerコンテナがクラッシュする / 動作が遅い
+### コンテナがクラッシュする / 動作が遅い
 
-Dockerに割り当てているメモリが不足している可能性があります。
+割り当てメモリが不足している可能性があります。
+
+**Docker Desktop の場合:**
 
 1. Docker Desktop を開く
 2. **Settings（歯車アイコン）** → **Resources** → **Memory** を増やす（12GB以上推奨）
 3. **Apply & Restart**
+
+**Podman の場合:**
+
+```bash
+# 現在のマシン設定を確認
+podman machine inspect
+
+# マシンを停止・削除して、より多くのメモリで再作成
+podman machine stop
+podman machine rm
+podman machine init --memory 12288 --cpus 4   # 12GB RAM
+podman machine start
+```
+
+---
+
+### Podman 固有のトラブルシューティング
+
+**`podman machine` が起動しない:**
+
+```bash
+# マシンのステータス確認
+podman machine list
+
+# ログ確認
+podman machine ssh -- journalctl -xe
+```
+
+**`podman compose` コマンドが見つからない:**
+
+```bash
+# podman のバージョン確認（4.7以上が必要）
+podman --version
+
+# バージョンが古い場合はアップデート
+brew upgrade podman
+
+# または Python製 podman-compose をインストール
+pip install podman-compose
+# インストール後は "podman-compose" コマンドを使う
+podman-compose -f docker-compose.yml -f docker-compose.mac.yml up -d
+```
+
+**`host.docker.internal` が解決できない（Podman）:**
+
+PodmanではデフォルトでDockerのホスト名解決が使えない場合があります。`.env` に以下を追加してください:
+
+```env
+HOST_DOCKER_INTERNAL=host.containers.internal
+```
+
+**`podman-compose` を使う場合の `make` コマンドについて:**
+
+MakefileはDockerが存在しない場合に自動的に `podman` を使用します。ただし、`podman-compose`（Python製）はMakefileが自動認識しないため、直接コマンドを実行する必要があります:
+
+```bash
+# make dev-mac の代わり（podman-compose を使う場合）
+podman-compose -f docker-compose.yml -f docker-compose.mac.yml up -d
+```
 
 ---
 
@@ -465,6 +650,26 @@ OpenSearchのパスワードは複雑さ要件があります。大文字・小�
 **Q: 初回起動に時間がかかる**
 
 初回起動時はDockerイメージのダウンロード（数GB）があるため、ネットワーク速度によっては10〜20分かかることがあります。2回目以降はキャッシュが使われるため高速です。
+
+**Q: watsonx.ai に接続できない（SSL証明書エラー）**
+
+オンプレミスOCPで自己署名証明書を使用している場合は以下を設定してください:
+
+```env
+# 証明書検証を無効にする（開発環境向け）
+WATSONX_SSL_VERIFY=false
+
+# または CA バンドルを指定する（本番環境向け）
+WATSONX_CA_BUNDLE_PATH=/path/to/your/ca-bundle.pem
+```
+
+**Q: `LLM_PROVIDER=openai` なのに watsonx.ai が使われるのか？**
+
+はい。OpenRAGでは on-prem OCP の watsonx.ai が OpenAI互換 API エンドポイントを提供するため、`LLM_PROVIDER=openai` と設定します。実際のリクエストは `WATSONX_API_URL` で指定したCP4Dホストへ送信されます。
+
+**Q: `WATSONX_PROJECT_ID` の確認方法は？**
+
+CP4Dの管理コンソールにログイン → 左メニューの **Projects** → 該当プロジェクトを選択 → ブラウザのURLに含まれるUUID（例: `...projects/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`）がProject IDです。
 
 ---
 

@@ -49,7 +49,7 @@ WATSONX_PROJECT_ID=be87baf8-e1b5-4247-a9ee-b95aa3e3fbb1
 # 行1334-1550: search()メソッド
 # 1. OpenSearchインデックスから利用可能なモデルを検出
 available_models = self._detect_available_models(client, filter_clauses)
-# 例: ['granite-embedding-170m-multilingual']
+# 例: ['granite-embedding-107m-multilingual']
 
 # 2. 各モデルに対応する埋め込みオブジェクトを検索
 embedding_by_model = {}  # モデル名 -> 埋め込みオブジェクトのマッピング

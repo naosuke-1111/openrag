@@ -125,19 +125,18 @@ API が完成した際にフックの API コール部分を差し替えるだ�
 
 ---
 
-## バックエンド API への置き換え手順
+## バックエンド API への置き換え（Week 11-12 完了済み）
 
-`_hooks/use-watson-news.ts` 内の各フックにコメントでAPI エンドポイントを明記している。
+`_hooks/use-watson-news.ts` の全フックを実 API 接続に置き換え済み（Week 11-12）。
 
-```typescript
-// バックエンド実装後は POST /api/watson-news/search に差し替える
-// バックエンド実装後は GET /api/watson-news/articles/:id に差し替える
-// バックエンド実装後は GET /api/watson-news/box/files/:file_id に差し替える
-// バックエンド実装後は /api/watson-news/stats に差し替える
-```
+| フック | 接続先エンドポイント |
+|---|---|
+| `useDashboardStats` | `GET /api/watson-news/articles`・`/box/files`・`/trends`（並列） |
+| `useWatsonNewsSearch` | `POST /api/watson-news/search` |
+| `useArticleDetail` | `GET /api/watson-news/articles/{id}` |
+| `useBoxDocumentDetail` | `GET /api/watson-news/box/files/{file_id}` |
 
-各 `setTimeout` ブロックを `fetch()` / React Query の `useQuery` に置き換えることで
-実際の API と接続できる。
+詳細は `watson-news/testing-and-tuning.md` を参照。
 
 ---
 
@@ -338,7 +337,7 @@ npx playwright test
 
 ## 残タスク（Phase 2 以降）
 
-- [ ] バックエンド API（Week 7-8）完成後にモックデータを実 API に置き換え
+- [x] バックエンド API（Week 7-8）完成後にモックデータを実 API に置き換え（Week 11-12 完了）
 - [ ] Trend Analytics 画面（`/watson-news/trends`）— `@carbon/charts` で時系列グラフ
 - [ ] Alerts & Reports 画面（`/watson-news/alerts`）
 - [ ] React Query (`useSWR` / `useQuery`) への移行でキャッシュ管理を最適化

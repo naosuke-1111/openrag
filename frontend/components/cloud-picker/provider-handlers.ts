@@ -8,15 +8,6 @@ import {
   GooglePickerDocument,
 } from "./types";
 
-// Add type definition for window.OneDrive
-declare global {
-  interface Window {
-    OneDrive: {
-      open: (config: any) => void;
-    };
-  }
-}
-
 interface OneDriveItem {
   id: string;
   name: string;

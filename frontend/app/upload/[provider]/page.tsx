@@ -94,7 +94,7 @@ export default function UploadProviderPage() {
             downloadUrl: file.downloadUrl,
             size: file.size,
           })),
-          settings: ingestSettings as Record<string, unknown>,
+          settings: ingestSettings as unknown as Record<string, unknown>,
         },
       },
       {

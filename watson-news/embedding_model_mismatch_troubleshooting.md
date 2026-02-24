@@ -39,7 +39,7 @@ WATSONX_PROJECT_ID=be87baf8-e1b5-4247-a9ee-b95aa3e3fbb1
 
 1. **OpenSearchインデックス**: ドキュメントは `granite-embedding-107m-multilingual` (WatsonX) でインデックス化されている
 2. **Langflowフロー**: 埋め込みモデルコンポーネントは **OpenAI** プロバイダーに設定されている
-3. **マッチング失敗**: クエリ時にOpenSearchから検出されたモデル (`granite-embedding-170m-multilingual`) に対応する埋め込みオブジェクトが見つからない
+3. **マッチング失敗**: クエリ時にOpenSearchから検出されたモデル (`granite-embedding-107m-multilingual`) に対応する埋め込みオブジェクトが見つからない
 
 ### 3. 技術的な背景
 

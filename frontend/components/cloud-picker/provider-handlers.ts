@@ -6,18 +6,10 @@ import {
   CloudProvider,
   GooglePickerData,
   GooglePickerDocument,
+  OneDrivePickerConfig,
+  OneDriveResponse,
+  OneDriveError,
 } from "./types";
-
-interface OneDriveItem {
-  id: string;
-  name: string;
-  file?: { mimeType?: string };
-  webUrl?: string;
-  "@microsoft.graph.downloadUrl"?: string;
-  size?: number;
-  lastModifiedDateTime?: string;
-  folder?: unknown;
-}
 
 export class GoogleDriveHandler {
   private accessToken: string;
@@ -205,7 +197,7 @@ export class OneDriveHandler {
         ? this.baseUrl
         : "api.onedrive.com";
 
-    (window.OneDrive as any).open({
+    window.OneDrive!.open({
       clientId: this.clientId,
       action: "query",
       multiSelect: true,
@@ -213,7 +205,7 @@ export class OneDriveHandler {
         endpointHint: endpointHint,
         accessToken: this.accessToken,
       },
-      success: (response: { value?: OneDriveItem[] }) => {
+      success: (response: OneDriveResponse) => {
         if (!response || !response.value) {
           console.warn("OneDrive picker returned no value");
           return;
@@ -263,7 +255,7 @@ export class OneDriveHandler {
         onFileSelected(newFiles);
       },
       cancel: () => {},
-      error: (error: unknown) => {
+      error: (error: OneDriveError) => {
         console.error("Picker error callback:", error);
       },
     });

@@ -80,7 +80,9 @@ declare global {
         };
       };
     };
-    OneDrive?: unknown;
+    OneDrive?: unknown{
+      open: (config: any) => void;
+    };
   }
 }
 

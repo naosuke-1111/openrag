@@ -2,13 +2,14 @@
 
 import { SharePointV8Handler } from "./sharepoint-v8-handler";
 import {
-  CloudFile,
-  CloudProvider,
-  GooglePickerData,
-  GooglePickerDocument,
-  OneDriveError,
-  OneDrivePickerConfig,
-  OneDriveResponse,
+  type CloudFile,
+  type CloudProvider,
+  type GooglePickerData,
+  type GooglePickerDocument,
+  type OneDriveError,
+  type OneDriveItem,
+  type OneDrivePickerConfig,
+  type OneDriveResponse,
 } from "./types";
 
 export class GoogleDriveHandler {

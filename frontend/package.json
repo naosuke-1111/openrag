@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "check-format": "npx @biomejs/biome check",
     "format": "npx @biomejs/biome format --write",
     "knip": "knip"
@@ -63,6 +63,8 @@
     "@biomejs/biome": "2.3.5",
     "@eslint/eslintrc": "^3",
     "@types/node": "^20",
+    "eslint": "^9",
+    "eslint-config-next": "^15.5.9",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-syntax-highlighter": "^15.5.13",

@@ -6,9 +6,9 @@ import {
   CloudProvider,
   GooglePickerData,
   GooglePickerDocument,
+  OneDriveError,
   OneDrivePickerConfig,
   OneDriveResponse,
-  OneDriveError,
 } from "./types";
 
 export class GoogleDriveHandler {

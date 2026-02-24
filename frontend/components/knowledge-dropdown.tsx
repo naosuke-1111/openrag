@@ -589,7 +589,7 @@ export function KnowledgeDropdown() {
       <input
         ref={folderInputRef}
         type="file"
-        // @ts-ignore - webkitdirectory is not in TypeScript types but is widely supported
+        // @ts-expect-error - webkitdirectory is not in TypeScript types but is widely supported
         webkitdirectory=""
         directory=""
         multiple

@@ -44,7 +44,7 @@ export const useConnectConnectorMutation = () => {
       }
       return response.json();
     },
-    onMutate: async ({ connector }) => {
+    onMutate: async ({ connector: _connector }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["connectors"] });
 
@@ -55,7 +55,7 @@ export const useConnectConnectorMutation = () => {
 
       return { previousConnectors };
     },
-    onError: (err, { connector }, context) => {
+    onError: (err, { connector: _connector }, context) => {
       // Roll back if mutation fails
       if (context?.previousConnectors) {
         queryClient.setQueryData(["connectors"], context.previousConnectors);

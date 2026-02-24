@@ -2,7 +2,7 @@
 
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSyncConnector } from "@/app/api/mutations/useSyncConnector";
 import { useGetConnectorsQuery } from "@/app/api/queries/useGetConnectorsQuery";
 import { useGetConnectorTokenQuery } from "@/app/api/queries/useGetConnectorTokenQuery";

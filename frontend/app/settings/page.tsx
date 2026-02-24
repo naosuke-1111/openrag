@@ -9,7 +9,6 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -54,12 +53,11 @@ import {
   UI_CONSTANTS,
 } from "@/lib/constants";
 import { useDebounce } from "@/lib/debounce";
-import { cn } from "@/lib/utils";
 import { useUpdateSettingsMutation } from "../api/mutations/useUpdateSettingsMutation";
 import { ModelSelector } from "../onboarding/_components/model-selector";
 import ConnectorCards from "./_components/connector-cards";
 import ModelProviders from "./_components/model-providers";
-import { getModelLogo, type ModelProvider } from "./_helpers/model-helpers";
+import { getModelLogo } from "./_helpers/model-helpers";
 
 const { MAX_SYSTEM_PROMPT_CHARS } = UI_CONSTANTS;
 

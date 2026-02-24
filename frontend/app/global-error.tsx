@@ -4,7 +4,7 @@ import { isChunkLoadError } from "@/lib/utils";
 
 export default function GlobalError({
   error,
-  reset,
+  reset: _reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;

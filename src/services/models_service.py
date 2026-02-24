@@ -1,9 +1,39 @@
 import httpx
+import os
+import ssl
 from typing import Dict, List
 from utils.container_utils import transform_localhost_url
 from utils.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+# SSL検証設定を環境変数から読み込む
+WATSONX_SSL_VERIFY = os.getenv("WATSONX_SSL_VERIFY", "true").lower() not in (
+    "false", "0", "no"
+)
+WATSONX_CA_BUNDLE_PATH = os.getenv("WATSONX_CA_BUNDLE_PATH", "")
+# CP4D認証設定
+WATSONX_AUTH_URL = os.getenv("WATSONX_AUTH_URL", "")
+WATSONX_USERNAME = os.getenv("WATSONX_USERNAME", "")
+WATSONX_PASSWORD = os.getenv("WATSONX_PASSWORD", "")
+
+
+def _build_ssl_context() -> bool | ssl.SSLContext:
+    """環境設定に基づいて SSL コンテキストを構築する。"""
+    if not WATSONX_SSL_VERIFY:
+        return False
+    if WATSONX_CA_BUNDLE_PATH:
+        ctx = ssl.create_default_context(cafile=WATSONX_CA_BUNDLE_PATH)
+        return ctx
+    return True
+
+
+def _is_cp4d_endpoint(endpoint: str) -> bool:
+    """エンドポイントがCP4D（オンプレミス）かどうかを判定する。"""
+    if not endpoint:
+        return False
+    # IBM Cloudのエンドポイントではない場合はCP4Dと判定
+    return "cloud.ibm.com" not in endpoint.lower()
 
 
 class ModelsService:
@@ -289,10 +319,42 @@ class ModelsService:
             # Use provided endpoint or default
             watson_endpoint = endpoint
 
-            # Get bearer token from IBM IAM
+            # SSL検証設定を取得
+            ssl_context = _build_ssl_context()
+            verify_ssl = ssl_context if isinstance(ssl_context, (bool, ssl.SSLContext)) else True
+
+            # Get bearer token - CP4DかIBM Cloudかを判定
             bearer_token = None
-            if api_key:
-                async with httpx.AsyncClient() as client:
+            is_cp4d = _is_cp4d_endpoint(watson_endpoint)
+            
+            if is_cp4d and WATSONX_AUTH_URL and WATSONX_USERNAME and WATSONX_PASSWORD:
+                # CP4D認証（オンプレミス）
+                logger.info("Using CP4D authentication for on-premise watsonx")
+                async with httpx.AsyncClient(verify=verify_ssl) as client:
+                    auth_payload = {
+                        "username": WATSONX_USERNAME,
+                        "password": WATSONX_PASSWORD
+                    }
+                    token_response = await client.post(
+                        WATSONX_AUTH_URL,
+                        json=auth_payload,
+                        timeout=10.0,
+                    )
+
+                    if token_response.status_code != 200:
+                        raise Exception(
+                            f"Failed to get CP4D token: {token_response.status_code} - {token_response.text}"
+                        )
+
+                    token_data = token_response.json()
+                    bearer_token = token_data.get("token") or token_data.get("access_token")
+
+                    if not bearer_token:
+                        raise Exception("No token in CP4D response")
+            elif api_key:
+                # IBM Cloud IAM認証
+                logger.info("Using IBM Cloud IAM authentication")
+                async with httpx.AsyncClient(verify=verify_ssl) as client:
                     token_response = await client.post(
                         "https://iam.cloud.ibm.com/identity/token",
                         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -329,7 +391,7 @@ class ModelsService:
             language_models = []
             embedding_models = []
 
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(verify=verify_ssl) as client:
                 # Fetch text chat models
                 text_params = {
                     "version": "2024-09-16",

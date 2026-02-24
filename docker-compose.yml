@@ -51,6 +51,8 @@ services:
     container_name: openrag-backend
     depends_on:
       - langflow
+    ports:
+      - "8000:8000"
     environment:
       - OPENSEARCH_HOST=opensearch
       - LANGFLOW_URL=http://langflow:7860

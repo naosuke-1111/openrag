@@ -81,7 +81,7 @@ declare global {
       };
     };
     OneDrive?: {
-      open: (config: any) => void;
+      open: (config: OneDrivePickerConfig) => void;
     };
   }
 }
@@ -112,4 +112,26 @@ export interface IngestSettings {
   ocr: boolean;
   pictureDescriptions: boolean;
   embeddingModel: string;
+}
+
+export interface OneDrivePickerConfig {
+  clientId: string;
+  action: string;
+  multiSelect: boolean;
+  advanced: {
+    endpointHint: string;
+    accessToken: string;
+  };
+  success: (response: OneDriveResponse) => void;
+  cancel: () => void;
+  error: (error: OneDriveError) => void;
+}
+
+export interface OneDriveResponse {
+  value?: OneDriveItem[];
+}
+
+export interface OneDriveError {
+  message?: string;
+  [key: string]: unknown;
 }

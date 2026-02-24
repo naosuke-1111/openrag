@@ -4,7 +4,7 @@
 
 ```
 Failed to generate embeddings for any model. 
-Index has models: ['granite-embedding-170m-multilingual']
+Index has models: ['granite-embedding-107m-multilingual']
 Available embedding identifiers: ['text-embedding-3-small', 'text-embedding-3-large', 'text-embedding-ada-002', 'text-embedding-ada-002:text-embedding-3-small']
 ```
 
@@ -20,7 +20,7 @@ Available embedding identifiers: ['text-embedding-3-small', 'text-embedding-3-la
 #### `.env`ファイルの設定
 ```env
 EMBEDDING_PROVIDER=ibm
-EMBEDDING_MODEL=granite-embedding-170m-multilingual
+EMBEDDING_MODEL=granite-embedding-107m-multilingual
 WATSONX_API_KEY=gDVTt7BeNz8lqNBb1xC1k9wyOSmlW4TdigoI4yKJ
 WATSONX_ENDPOINT=https://cpd-cpd.apps.watsonx2.lab.japan.ibm.com
 WATSONX_PROJECT_ID=be87baf8-e1b5-4247-a9ee-b95aa3e3fbb1
@@ -37,7 +37,7 @@ WATSONX_PROJECT_ID=be87baf8-e1b5-4247-a9ee-b95aa3e3fbb1
 
 ### 2. 問題の詳細
 
-1. **OpenSearchインデックス**: ドキュメントは `granite-embedding-170m-multilingual` (WatsonX) でインデックス化されている
+1. **OpenSearchインデックス**: ドキュメントは `granite-embedding-107m-multilingual` (WatsonX) でインデックス化されている
 2. **Langflowフロー**: 埋め込みモデルコンポーネントは **OpenAI** プロバイダーに設定されている
 3. **マッチング失敗**: クエリ時にOpenSearchから検出されたモデル (`granite-embedding-170m-multilingual`) に対応する埋め込みオブジェクトが見つからない
 
@@ -88,7 +88,7 @@ if not query_embeddings:
    | 設定項目 | 変更前 | 変更後 |
    |---------|--------|--------|
    | Model Provider | `OpenAI` | `IBM watsonx.ai` |
-   | Model Name | `text-embedding-3-small` | `granite-embedding-170m-multilingual` |
+   | Model Name | `text-embedding-3-small` | `granite-embedding-107m-multilingual` |
    | IBM watsonx.ai API Key | (空) | `gDVTt7BeNz8lqNBb1xC1k9wyOSmlW4TdigoI4yKJ` |
    | Project ID | (空) | `be87baf8-e1b5-4247-a9ee-b95aa3e3fbb1` |
    | watsonx API Endpoint | (デフォルト) | `https://cpd-cpd.apps.watsonx2.lab.japan.ibm.com` |
@@ -134,9 +134,9 @@ docker-compose logs -f langflow
 
 以下のようなログが表示されれば成功:
 ```
-[SEARCH] Models detected in index: ['granite-embedding-170m-multilingual']
-[SEARCH] Available embedding identifiers: ['granite-embedding-170m-multilingual', ...]
-[MATCH] Model 'granite-embedding-170m-multilingual' - generated 768-dim embedding
+[SEARCH] Models detected in index: ['granite-embedding-107m-multilingual']
+[SEARCH] Available embedding identifiers: ['granite-embedding-107m-multilingual', ...]
+[MATCH] Model 'granite-embedding-107m-multilingual' - generated 768-dim embedding
 ```
 
 ### 2. APIエンドポイントをテスト
@@ -269,5 +269,5 @@ WatsonXの場合、通常は `model` または `model_id` が使用されます�
 ---
 
 **作成日**: 2026-02-24  
-**最終更新**: 2026-02-24  
+**最終更新**: 2026-02-25  
 **作成者**: OpenRAG Troubleshooting Team

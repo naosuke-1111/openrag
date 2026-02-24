@@ -26,7 +26,7 @@ export function ModelSelectors({
     watch,
     formState: { errors },
     setValue,
-  } = useFormContext<Record<string, any>>();
+  } = useFormContext<Record<string, string>>();
 
   const llmModel = watch(languageModelName);
   const embeddingModel = watch(embeddingModelName);
@@ -83,7 +83,7 @@ export function ModelSelectors({
                       : "No embedding models detected"
                   }
                   placeholder="Select an embedding model"
-                  value={field.value}
+                  value={field.value as string}
                   onValueChange={field.onChange}
                 />
               )}
@@ -118,7 +118,7 @@ export function ModelSelectors({
                       : "No language models detected"
                   }
                   placeholder="Select a language model"
-                  value={field.value}
+                  value={field.value as string}
                   onValueChange={field.onChange}
                 />
               )}

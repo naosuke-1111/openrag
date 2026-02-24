@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { IngestSettings } from "@/components/cloud-picker/types";
 
 // Response types
 interface SyncResponse {
@@ -46,7 +47,7 @@ const syncConnector = async ({
       downloadUrl?: string;
       size?: number;
     }>;
-    settings?: any;
+    settings?: IngestSettings;
   };
 }): Promise<SyncResponse> => {
   const response = await fetch(`/api/connectors/${connectorType}/sync`, {

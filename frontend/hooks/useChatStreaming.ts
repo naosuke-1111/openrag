@@ -100,8 +100,6 @@ export function useChatStreaming({
         requestBody.filter_id = filter_id;
       }
 
-      console.log("[useChatStreaming] Sending request:", { filter_id, requestBody });
-
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -162,18 +160,18 @@ export function useChatStreaming({
             if (line.trim()) {
               try {
                 const chunk = JSON.parse(line);
-                
+
                 // Investigation logging for Granite 3.3 8b tool call detection
                 const chunkKeys = Object.keys(chunk);
-                const toolRelatedKeys = chunkKeys.filter(key => 
-                  key.toLowerCase().includes('tool') || 
-                  key.toLowerCase().includes('call') || 
-                  key.toLowerCase().includes('retrieval') ||
-                  key.toLowerCase().includes('function') ||
-                  key.toLowerCase().includes('result')
+                const toolRelatedKeys = chunkKeys.filter(
+                  (key) =>
+                    key.toLowerCase().includes("tool") ||
+                    key.toLowerCase().includes("call") ||
+                    key.toLowerCase().includes("retrieval") ||
+                    key.toLowerCase().includes("function") ||
+                    key.toLowerCase().includes("result"),
                 );
                 if (toolRelatedKeys.length > 0) {
-                  console.log('[Tool Detection] Found tool-related keys:', toolRelatedKeys, chunk);
                 }
 
                 // Extract response ID if present
@@ -213,7 +211,7 @@ export function useChatStreaming({
                             );
                             lastFunctionCall.arguments = parsed;
                             lastFunctionCall.status = "completed";
-                          } catch (e) {
+                          } catch (_e) {
                             // Arguments not yet complete
                           }
                         }
@@ -256,7 +254,7 @@ export function useChatStreaming({
                                 );
                                 lastFunctionCall.arguments = parsed;
                                 lastFunctionCall.status = "completed";
-                              } catch (e) {
+                              } catch (_e) {
                                 // Arguments not yet complete
                               }
                             }
@@ -277,7 +275,7 @@ export function useChatStreaming({
                         try {
                           fc.arguments = JSON.parse(fc.argumentsString);
                           fc.status = "completed";
-                        } catch (e) {
+                        } catch (_e) {
                           fc.arguments = { raw: fc.argumentsString };
                           fc.status = "error";
                         }
@@ -462,32 +460,38 @@ export function useChatStreaming({
                     }
                   }
                 }
-                
+
                 // Heuristic detection for implicit tool calls (Granite 3.3 8b workaround)
                 // Check if chunk contains retrieval results without explicit tool call markers
-                const hasImplicitToolCall = (
+                const hasImplicitToolCall =
                   // Check for various result indicators in the chunk
-                  (chunk.results && Array.isArray(chunk.results) && chunk.results.length > 0) ||
-                  (chunk.outputs && Array.isArray(chunk.outputs) && chunk.outputs.length > 0) ||
+                  (chunk.results &&
+                    Array.isArray(chunk.results) &&
+                    chunk.results.length > 0) ||
+                  (chunk.outputs &&
+                    Array.isArray(chunk.outputs) &&
+                    chunk.outputs.length > 0) ||
                   // Check for retrieval-related fields
                   chunk.retrieved_documents ||
                   chunk.retrieval_results ||
                   // Check for nested data structures that might contain results
-                  (chunk.data && typeof chunk.data === 'object' && (
-                    chunk.data.results || 
-                    chunk.data.retrieved_documents ||
-                    chunk.data.retrieval_results
-                  ))
-                );
-                
+                  (chunk.data &&
+                    typeof chunk.data === "object" &&
+                    (chunk.data.results ||
+                      chunk.data.retrieved_documents ||
+                      chunk.data.retrieval_results));
+
                 if (hasImplicitToolCall && currentFunctionCalls.length === 0) {
-                  console.log('[Heuristic Detection] Detected implicit tool call:', chunk);
-                  
                   // Create a synthetic function call for the UI
-                  const results = chunk.results || chunk.outputs || chunk.retrieved_documents || 
-                                 chunk.retrieval_results || chunk.data?.results || 
-                                 chunk.data?.retrieved_documents || [];
-                  
+                  const results =
+                    chunk.results ||
+                    chunk.outputs ||
+                    chunk.retrieved_documents ||
+                    chunk.retrieval_results ||
+                    chunk.data?.results ||
+                    chunk.data?.retrieved_documents ||
+                    [];
+
                   const syntheticFunctionCall: FunctionCall = {
                     name: "Retrieval",
                     arguments: { implicit: true, detected_heuristically: true },
@@ -496,7 +500,6 @@ export function useChatStreaming({
                     result: results,
                   };
                   currentFunctionCalls.push(syntheticFunctionCall);
-                  console.log('[Heuristic Detection] Created synthetic function call');
                 }
 
                 // Update streaming message in real-time
@@ -535,22 +538,27 @@ export function useChatStreaming({
           "No response received from the server. Please try again.",
         );
       }
-      
+
       // Post-processing: Heuristic detection based on final content
       // If no explicit tool calls detected but content shows RAG indicators
       if (currentFunctionCalls.length === 0 && currentContent) {
         // Check for citation patterns that indicate RAG usage
-        const hasCitations = /\(Source:|\[Source:|\bSource:|filename:|document:/i.test(currentContent);
+        const hasCitations =
+          /\(Source:|\[Source:|\bSource:|filename:|document:/i.test(
+            currentContent,
+          );
         // Check for common RAG response patterns
-        const hasRAGPattern = /based on.*(?:document|file|information|data)|according to.*(?:document|file)/i.test(currentContent);
-        
+        const hasRAGPattern =
+          /based on.*(?:document|file|information|data)|according to.*(?:document|file)/i.test(
+            currentContent,
+          );
+
         if (hasCitations || hasRAGPattern) {
-          console.log('[Post-Processing] Detected RAG usage from content patterns');
           const syntheticFunctionCall: FunctionCall = {
             name: "Retrieval",
-            arguments: { 
-              implicit: true, 
-              detected_from: hasCitations ? "citations" : "content_patterns"
+            arguments: {
+              implicit: true,
+              detected_from: hasCitations ? "citations" : "content_patterns",
             },
             status: "completed",
             type: "retrieval_call",

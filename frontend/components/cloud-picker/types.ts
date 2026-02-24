@@ -44,6 +44,39 @@ export interface GooglePickerDocument {
   [key: string]: string;
 }
 
+export interface OneDriveItem {
+  id: string;
+  name: string;
+  file?: { mimeType?: string };
+  webUrl?: string;
+  "@microsoft.graph.downloadUrl"?: string;
+  size?: number;
+  lastModifiedDateTime?: string;
+  folder?: unknown;
+}
+
+export interface OneDriveResponse {
+  value?: OneDriveItem[];
+}
+
+export interface OneDriveError {
+  code: string;
+  message: string;
+}
+
+export interface OneDrivePickerConfig {
+  clientId: string;
+  action: string;
+  multiSelect?: boolean;
+  advanced?: {
+    endpointHint?: string;
+    accessToken?: string;
+  };
+  success?: (response: OneDriveResponse) => void;
+  cancel?: () => void;
+  error?: (error: OneDriveError) => void;
+}
+
 declare global {
   interface Window {
     gapi: GoogleAPI;
@@ -80,7 +113,9 @@ declare global {
         };
       };
     };
-    OneDrive?: any;
+    OneDrive?: {
+      open: (config: OneDrivePickerConfig) => void;
+    };
   }
 }
 

@@ -33,14 +33,14 @@ export const useOnboardingMutation = (
   options?: Omit<
     UseMutationOptions<OnboardingResponse, Error, OnboardingVariables>,
     "mutationFn"
-  >
+  >,
 ) => {
   const queryClient = useQueryClient();
 
   const updateOnboardingMutation = useUpdateOnboardingStateMutation();
 
   async function submitOnboarding(
-    variables: OnboardingVariables
+    variables: OnboardingVariables,
   ): Promise<OnboardingResponse> {
     const response = await fetch("/api/onboarding", {
       method: "POST",
@@ -67,11 +67,6 @@ export const useOnboardingMutation = (
         updateOnboardingMutation.mutateAsync({
           openrag_docs_filter_id: data.openrag_docs_filter_id,
         });
-
-        console.log(
-          "Saved OpenRAG docs filter ID:",
-          data.openrag_docs_filter_id
-        );
       }
     },
     onSettled: () => {

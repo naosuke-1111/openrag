@@ -648,48 +648,50 @@ langdetect   = ">=1.0"      # 言語検出
 
 ### Week 1-2: 基盤構築
 
-- [ ] `watson_news/` / `box/` ディレクトリ構造作成
-- [ ] OpenSearch インデックスマッピング定義・作成スクリプト（5インデックス）
-- [ ] 設定変数の追加（`config/settings.py`）
-- [ ] 依存パッケージ追加（`pyproject.toml`）
-- [ ] `.env.example` 更新
+- [x] `watson_news/` / `box/` ディレクトリ構造作成
+- [x] OpenSearch インデックスマッピング定義・作成スクリプト（5インデックス）— `watson_news_service.py` の `ensure_indices()` で実装
+- [x] 設定変数の追加（`.env.example` 経由・各コネクタが `os.getenv` で直接参照）
+- [x] 依存パッケージ追加（`pyproject.toml`）
+- [x] `.env.example` 更新
 
 ### Week 3-4: ETL（取得・クリーニング）
 
-- [ ] `GdeltConnector` 実装
-- [ ] `IbmCrawlConnector` 実装（差分検知・robots.txt 対応・7サイト設定）
-- [ ] `BoxConnector` 実装（OAuth 2.0 認証・差分取得）
-- [ ] `BoxOAuth` 実装（トークンキャッシュ・リフレッシュ）
-- [ ] `cleaner.py` 実装（ニュース HTML除去 / Box docling テキスト抽出・チャンク分割）
-- [ ] Raw Layer への保存実装
-- [ ] ユニットテスト・クローラテスト作成
+- [x] `GdeltConnector` 実装
+- [x] `IbmCrawlConnector` 実装（差分検知・robots.txt 対応・7サイト設定）
+- [x] `BoxConnector` 実装（OAuth 2.0 認証・差分取得）
+- [x] `BoxOAuth` 実装（トークンキャッシュ・リフレッシュ）
+- [x] `cleaner.py` 実装（ニュース HTML除去 / Box docling テキスト抽出・チャンク分割）
+- [x] Raw Layer への保存実装（`etl_pipeline.py`）
+- [x] ユニットテスト・クローラテスト作成（`tests/watson_news/test_ibm_crawl_connector.py` 他）
 
 ### Week 5-6: AI解析・Embedding
 
-- [ ] `enricher.py` 実装（watsonx.ai 連携・ニュース/Box共通）
-- [ ] Embedding パイプライン実装（既存 `document_service.py` 活用）
-- [ ] OpenSearch への upsert 実装（ニュース / Box 各インデックス）
-- [ ] バッチ処理・エラーハンドリング・レートリミット対応
+- [x] `enricher.py` 実装（watsonx.ai 連携・ニュース/Box共通）
+- [x] Embedding パイプライン実装（既存 `document_service.py` 活用）
+- [x] OpenSearch への upsert 実装（ニュース / Box 各インデックス）
+- [x] バッチ処理・エラーハンドリング・レートリミット対応
 
 ### Week 7-8: スケジューラ・API
 
-- [ ] `scheduler.py` 実装（APScheduler・9ジョブ）
-- [ ] REST API エンドポイント実装（`routes.py`・8エンドポイント）
-- [ ] Starlette へのルート登録
+- [x] `scheduler.py` 実装（APScheduler・9ジョブ）
+- [x] REST API エンドポイント実装（`routes.py`・8エンドポイント）
+- [x] Starlette へのルート登録（`main.py`）
 
 ### Week 9-10: フロントエンド（MVP）
 
-- [ ] Search & Filter 画面実装（ニュース + Box文書 横断検索・フィルタ）
-- [ ] Article Detail 画面実装
-- [ ] Box Document View 画面実装
-- [ ] Dashboard（静的サマリー）実装
+- [x] Search & Filter 画面実装（ニュース + Box文書 横断検索・フィルタ）
+- [x] Article Detail 画面実装
+- [x] Box Document View 画面実装
+- [x] Dashboard（静的サマリー）実装
+- [x] 実装記録・テスト手順ドキュメント整備（`watson-news/frontend-implementation.md`）
 
 ### Week 11-12: テスト・チューニング
 
-- [ ] 統合テスト（全コネクタ・全APIエンドポイント）
-- [ ] パフォーマンステスト（検索1秒以内を確認）
-- [ ] クロール倫理テスト（robots.txt 遵守・インターバル確認）
-- [ ] バグ修正・ドキュメント整備
+- [x] 単体テスト全通過（46 tests passed）— `tests/watson_news/` 配下
+- [x] 統合テスト追加（全 REST API エンドポイント）— `test_api_routes.py`（19 tests）
+- [x] クロール倫理テスト追加（robots.txt 遵守・インターバル確認）— `test_crawler_ethics.py`（10 tests）
+- [ ] パフォーマンステスト（検索1秒以内を確認）— バックエンド接続後に実施
+- [ ] バグ修正・ドキュメント整備（バックエンド接続後に最終確認）
 
 ---
 

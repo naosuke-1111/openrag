@@ -1,12 +1,16 @@
 "use client";
 
-import {
-  CloudFile,
-  CloudProvider,
-  GooglePickerData,
-  GooglePickerDocument,
-} from "./types";
 import { SharePointV8Handler } from "./sharepoint-v8-handler";
+import {
+  type CloudFile,
+  type CloudProvider,
+  type GooglePickerData,
+  type GooglePickerDocument,
+  type OneDriveError,
+  type OneDriveItem,
+  type OneDrivePickerConfig,
+  type OneDriveResponse,
+} from "./types";
 
 export class GoogleDriveHandler {
   private accessToken: string;
@@ -189,11 +193,12 @@ export class OneDriveHandler {
 
     // For SharePoint, use the SharePoint site URL as endpoint hint
     // For OneDrive, use the default OneDrive API endpoint
-    const endpointHint = this.provider === "sharepoint" && this.baseUrl
-      ? this.baseUrl
-      : "api.onedrive.com";
+    const endpointHint =
+      this.provider === "sharepoint" && this.baseUrl
+        ? this.baseUrl
+        : "api.onedrive.com";
 
-    window.OneDrive.open({
+    window.OneDrive!.open({
       clientId: this.clientId,
       action: "query",
       multiSelect: true,
@@ -201,15 +206,14 @@ export class OneDriveHandler {
         endpointHint: endpointHint,
         accessToken: this.accessToken,
       },
-      success: (response: any) => {
-        console.log("OneDrive picker success callback:", response);
+      success: (response: OneDriveResponse) => {
         if (!response || !response.value) {
           console.warn("OneDrive picker returned no value");
           return;
         }
-        
+
         const newFiles: CloudFile[] =
-          response.value?.map((item: any) => {
+          response.value?.map((item: OneDriveItem) => {
             // Extract mimeType from file object or infer from name
             let mimeType = item.file?.mimeType;
             if (!mimeType && item.name) {
@@ -251,10 +255,8 @@ export class OneDriveHandler {
 
         onFileSelected(newFiles);
       },
-      cancel: () => {
-        console.log("Picker cancelled");
-      },
-      error: (error: any) => {
+      cancel: () => {},
+      error: (error: OneDriveError) => {
         console.error("Picker error callback:", error);
       },
     });
@@ -272,14 +274,6 @@ export const createProviderHandler = (
   clientId?: string,
   baseUrl?: string,
 ) => {
-  // === DIAGNOSTIC LOGGING ===
-  console.log("=== Creating Provider Handler ===");
-  console.log("Provider:", provider);
-  console.log("Client ID:", clientId);
-  console.log("Base URL:", baseUrl);
-  console.log("Access Token (first 20 chars):", accessToken?.substring(0, 20) + "...");
-  console.log("Access Token length:", accessToken?.length);
-  
   switch (provider) {
     case "google_drive":
       return new GoogleDriveHandler(accessToken, onPickerStateChange);
@@ -292,8 +286,12 @@ export const createProviderHandler = (
       if (!baseUrl) {
         throw new Error("Base URL required for SharePoint v8 picker");
       }
-      console.log("Creating SharePointV8Handler with baseUrl:", baseUrl);
-      return new SharePointV8Handler(baseUrl, accessToken, clientId, onPickerStateChange);
+      return new SharePointV8Handler(
+        baseUrl,
+        accessToken,
+        clientId,
+        onPickerStateChange,
+      );
 
     case "onedrive":
       // Use v7.2 (OneDrive.js) for personal OneDrive - v8 doesn't work for consumer accounts

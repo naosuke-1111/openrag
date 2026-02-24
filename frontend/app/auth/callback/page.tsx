@@ -55,14 +55,6 @@ function AuthCallbackContent() {
             : "app_auth");
         setPurpose(detectedPurpose);
 
-        // Debug logging
-        console.log("OAuth Callback Debug:", {
-          urlParams: { code: !!code, state: !!state, error: errorParam },
-          localStorage: { connectorId, storedConnectorType, authPurpose },
-          detectedPurpose,
-          fullUrl: window.location.href,
-        });
-
         // Use state parameter as connection_id if localStorage is missing
         const finalConnectorId = connectorId || state;
 

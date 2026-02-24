@@ -14,17 +14,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter();
   const pathname = usePathname();
 
-  console.log(
-    "ProtectedRoute - isLoading:",
-    isLoading,
-    "isAuthenticated:",
-    isAuthenticated,
-    "isNoAuthMode:",
-    isNoAuthMode,
-    "pathname:",
-    pathname,
-  );
-
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !isNoAuthMode) {
       // Redirect to login with current path as redirect parameter

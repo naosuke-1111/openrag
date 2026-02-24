@@ -1,6 +1,8 @@
 "use client";
 
+import { AlertTriangle } from "lucide-react";
 import React from "react";
+import { Button } from "./ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,8 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import { Button } from "./ui/button";
-import { AlertTriangle } from "lucide-react";
 
 /**
  * Formats a list of files to be deleted, truncating if necessary.

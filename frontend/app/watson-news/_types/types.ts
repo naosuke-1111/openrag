@@ -96,13 +96,11 @@ export const SENTIMENT_CONFIG: Record<
   },
   neutral: {
     label: "ニュートラル",
-    className:
-      "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+    className: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
   },
   negative: {
     label: "ネガティブ",
-    className:
-      "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
   },
 };
 

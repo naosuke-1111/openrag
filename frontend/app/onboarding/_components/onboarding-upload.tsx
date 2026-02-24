@@ -7,12 +7,12 @@ import { useUpdateOnboardingStateMutation } from "@/app/api/mutations/useUpdateO
 import { useGetNudgesQuery } from "@/app/api/queries/useGetNudgesQuery";
 import { useGetTasksQuery } from "@/app/api/queries/useGetTasksQuery";
 import { AnimatedProviderSteps } from "@/app/onboarding/_components/animated-provider-steps";
+import { SUPPORTED_EXTENSIONS } from "@/components/knowledge-dropdown";
 import { Button } from "@/components/ui/button";
 import { uploadFile } from "@/lib/upload-utils";
-import { SUPPORTED_EXTENSIONS } from "@/components/knowledge-dropdown";
 
 interface OnboardingUploadProps {
-	onComplete: () => void;
+  onComplete: () => void;
 }
 
 const OnboardingUpload = ({ onComplete }: OnboardingUploadProps) => {
@@ -108,11 +108,6 @@ const OnboardingUpload = ({ onComplete }: OnboardingUploadProps) => {
               await updateOnboardingMutation.mutateAsync({
                 user_doc_filter_id: result.filter.id,
               });
-              
-              console.log(
-                "Created knowledge filter for uploaded document",
-                result.filter.id,
-              );
             }
           })
           .catch((error) => {
@@ -166,7 +161,6 @@ const OnboardingUpload = ({ onComplete }: OnboardingUploadProps) => {
     try {
       setCurrentStep(0);
       const result = await uploadFile(file, true, true); // Pass createFilter=true
-      console.log("Document upload task started successfully");
 
       // Store task ID to track the specific upload task
       if (result.taskId) {
@@ -184,7 +178,8 @@ const OnboardingUpload = ({ onComplete }: OnboardingUploadProps) => {
         setCurrentStep(1);
       }, 1500);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Upload failed";
+      const errorMessage =
+        error instanceof Error ? error.message : "Upload failed";
       console.error("Upload failed", errorMessage);
 
       // Dispatch event that chat context can listen to

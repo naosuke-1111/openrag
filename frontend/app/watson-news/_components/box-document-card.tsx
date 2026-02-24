@@ -10,8 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { SOURCE_TYPE_CONFIG, type BoxDocument } from "../_types/types";
 import { cn } from "@/lib/utils";
+import { type BoxDocument, SOURCE_TYPE_CONFIG } from "../_types/types";
 
 interface BoxDocumentCardProps {
   document: BoxDocument;

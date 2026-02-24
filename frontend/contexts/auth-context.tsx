@@ -2,11 +2,11 @@
 
 import React, {
   createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
   ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
 } from "react";
 
 interface User {
@@ -53,7 +53,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // If we can't reach the backend, keep loading
       if (!response.ok && (response.status === 0 || response.status >= 500)) {
-        console.log("Backend not ready, retrying in 2 seconds...");
         setTimeout(checkAuth, 2000);
         return;
       }
@@ -75,8 +74,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(false);
     } catch (error) {
       console.error("Auth check failed:", error);
-      // Network error - backend not ready, keep loading and retry
-      console.log("Backend not ready, retrying in 2 seconds...");
       setTimeout(checkAuth, 2000);
     }
   }, []);
@@ -84,14 +81,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = () => {
     // Don't allow login in no-auth mode
     if (isNoAuthMode) {
-      console.log("Login attempted in no-auth mode - ignored");
       return;
     }
 
     // Use the correct auth callback URL, not connectors callback
     const redirectUri = `${window.location.origin}/auth/callback`;
-
-    console.log("Starting login with redirect URI:", redirectUri);
 
     fetch("/api/auth/init", {
       method: "POST",
@@ -107,23 +101,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     })
       .then((response) => response.json())
       .then((result) => {
-        console.log("Auth init response:", result);
-
         if (result.oauth_config) {
           // Store that this is for app authentication
           localStorage.setItem("auth_purpose", "app_auth");
           localStorage.setItem("connecting_connector_id", result.connection_id);
           localStorage.setItem("connecting_connector_type", "app_auth");
-
-          console.log("Stored localStorage items:", {
-            auth_purpose: localStorage.getItem("auth_purpose"),
-            connecting_connector_id: localStorage.getItem(
-              "connecting_connector_id",
-            ),
-            connecting_connector_type: localStorage.getItem(
-              "connecting_connector_type",
-            ),
-          });
 
           const authUrl =
             `${result.oauth_config.authorization_endpoint}?` +
@@ -134,8 +116,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
             `access_type=offline&` +
             `prompt=select_account&` +
             `state=${result.connection_id}`;
-
-          console.log("Redirecting to OAuth URL:", authUrl);
           window.location.href = authUrl;
         } else {
           console.error("No oauth_config in response:", result);
@@ -149,7 +129,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = async () => {
     // Don't allow logout in no-auth mode
     if (isNoAuthMode) {
-      console.log("Logout attempted in no-auth mode - ignored");
       return;
     }
 

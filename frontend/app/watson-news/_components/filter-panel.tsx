@@ -9,7 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import type { Language, SearchFilters, SentimentLabel, SourceType } from "../_types/types";
+import type {
+  Language,
+  SearchFilters,
+  SentimentLabel,
+  SourceType,
+} from "../_types/types";
 
 interface FilterPanelProps {
   filters: SearchFilters;
@@ -42,17 +47,20 @@ const SENTIMENT_OPTIONS: {
   {
     value: "positive",
     label: "ポジティブ",
-    className: "data-[active=true]:bg-green-100 data-[active=true]:text-green-800 dark:data-[active=true]:bg-green-900/30 dark:data-[active=true]:text-green-400",
+    className:
+      "data-[active=true]:bg-green-100 data-[active=true]:text-green-800 dark:data-[active=true]:bg-green-900/30 dark:data-[active=true]:text-green-400",
   },
   {
     value: "neutral",
     label: "ニュートラル",
-    className: "data-[active=true]:bg-gray-100 data-[active=true]:text-gray-700 dark:data-[active=true]:bg-gray-800 dark:data-[active=true]:text-gray-300",
+    className:
+      "data-[active=true]:bg-gray-100 data-[active=true]:text-gray-700 dark:data-[active=true]:bg-gray-800 dark:data-[active=true]:text-gray-300",
   },
   {
     value: "negative",
     label: "ネガティブ",
-    className: "data-[active=true]:bg-red-100 data-[active=true]:text-red-800 dark:data-[active=true]:bg-red-900/30 dark:data-[active=true]:text-red-400",
+    className:
+      "data-[active=true]:bg-red-100 data-[active=true]:text-red-800 dark:data-[active=true]:bg-red-900/30 dark:data-[active=true]:text-red-400",
   },
 ];
 
@@ -142,7 +150,9 @@ export function FilterPanel({
                 <span
                   className={cn(
                     "text-sm transition-colors",
-                    isActive ? "text-foreground font-medium" : "text-muted-foreground group-hover:text-foreground",
+                    isActive
+                      ? "text-foreground font-medium"
+                      : "text-muted-foreground group-hover:text-foreground",
                   )}
                 >
                   {option.label}
@@ -177,7 +187,9 @@ export function FilterPanel({
                 <span
                   className={cn(
                     "text-sm transition-colors",
-                    isActive ? "text-foreground font-medium" : "text-muted-foreground group-hover:text-foreground",
+                    isActive
+                      ? "text-foreground font-medium"
+                      : "text-muted-foreground group-hover:text-foreground",
                   )}
                 >
                   {option.label}
@@ -218,7 +230,9 @@ export function FilterPanel({
                 <span
                   className={cn(
                     "text-sm transition-colors",
-                    isActive ? "text-foreground font-medium" : "text-muted-foreground group-hover:text-foreground",
+                    isActive
+                      ? "text-foreground font-medium"
+                      : "text-muted-foreground group-hover:text-foreground",
                   )}
                 >
                   {option.label}

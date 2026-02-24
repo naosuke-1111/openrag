@@ -16,16 +16,11 @@ import Link from "next/link";
 import { use, useState } from "react";
 import { ProtectedRoute } from "@/components/protected-route";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import { useBoxDocumentDetail } from "../../_hooks/use-watson-news";
 import { SOURCE_TYPE_CONFIG } from "../../_types/types";
-import { cn } from "@/lib/utils";
 
 interface BoxDocumentPageProps {
   params: Promise<{ fileId: string }>;
@@ -185,7 +180,9 @@ export default function BoxDocumentPage({ params }: BoxDocumentPageProps) {
                   <CardContent className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">チャンク数</span>
-                      <span className="font-medium">{document.chunks.length}</span>
+                      <span className="font-medium">
+                        {document.chunks.length}
+                      </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">MIMEタイプ</span>
@@ -240,10 +237,7 @@ export default function BoxDocumentPage({ params }: BoxDocumentPageProps) {
                 {document.chunks.map((chunk) => {
                   const isExpanded = expandedChunks.has(chunk.chunk_index);
                   return (
-                    <Card
-                      key={chunk.chunk_index}
-                      className="overflow-hidden"
-                    >
+                    <Card key={chunk.chunk_index} className="overflow-hidden">
                       {/* チャンクヘッダー（クリックで展開/折りたたみ） */}
                       <button
                         type="button"

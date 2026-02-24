@@ -26,7 +26,7 @@ export function ModelSelectors({
     watch,
     formState: { errors },
     setValue,
-  } = useFormContext<Record<string, any>>();
+  } = useFormContext<Record<string, unknown>>();
 
   const llmModel = watch(languageModelName);
   const embeddingModel = watch(embeddingModelName);

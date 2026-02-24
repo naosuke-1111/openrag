@@ -8,12 +8,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProtectedRoute } from "@/components/protected-route";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useWatsonNewsSearch } from "../_hooks/use-watson-news";
-import type { SearchFilters } from "../_types/types";
 import { ArticleCard } from "../_components/article-card";
 import { BoxDocumentCard } from "../_components/box-document-card";
 import { FilterPanel } from "../_components/filter-panel";
 import { SearchBar } from "../_components/search-bar";
+import { useWatsonNewsSearch } from "../_hooks/use-watson-news";
+import type { SearchFilters } from "../_types/types";
 
 // フィルターの初期値
 const DEFAULT_FILTERS: SearchFilters = {
@@ -95,9 +95,7 @@ export default function WatsonNewsSearchPage() {
             <div className="border-b border-border px-6 py-4">
               <SearchBar
                 value={filters.query}
-                onChange={(query) =>
-                  setFilters((prev) => ({ ...prev, query }))
-                }
+                onChange={(query) => setFilters((prev) => ({ ...prev, query }))}
                 onSearch={handleSearch}
                 isLoading={isLoading}
               />
@@ -132,7 +130,6 @@ export default function WatsonNewsSearchPage() {
                 <div className="space-y-3">
                   {[...Array(4)].map((_, i) => (
                     <div
-                      // biome-ignore lint/suspicious/noArrayIndexKey: スケルトン表示用
                       key={i}
                       className="h-32 rounded-xl border border-border bg-muted/30 animate-pulse"
                     />

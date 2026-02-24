@@ -32,8 +32,11 @@ export function FunctionCalls({
             className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3"
           >
             <div
+              role="button"
+              tabIndex={0}
               className="flex items-center gap-2 cursor-pointer hover:bg-blue-500/5 -m-3 p-3 rounded-lg transition-colors"
               onClick={() => onToggle(functionCallId)}
+              onKeyDown={(e) => e.key === "Enter" && onToggle(functionCallId)}
             >
               <Settings className="h-4 w-4 text-blue-400" />
               <span className="text-sm font-medium text-blue-400 flex-1">

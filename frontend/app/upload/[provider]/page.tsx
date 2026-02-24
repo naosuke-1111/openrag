@@ -3,19 +3,18 @@
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useSyncConnector } from "@/app/api/mutations/useSyncConnector";
+import { useGetConnectorsQuery } from "@/app/api/queries/useGetConnectorsQuery";
+import { useGetConnectorTokenQuery } from "@/app/api/queries/useGetConnectorTokenQuery";
 import { type CloudFile, UnifiedCloudPicker } from "@/components/cloud-picker";
 import type { IngestSettings } from "@/components/cloud-picker/types";
 import { Button } from "@/components/ui/button";
-import { useTask } from "@/contexts/task-context";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
-import { useSyncConnector } from "@/app/api/mutations/useSyncConnector";
-import { useGetConnectorsQuery } from "@/app/api/queries/useGetConnectorsQuery";
-import { useGetConnectorTokenQuery } from "@/app/api/queries/useGetConnectorTokenQuery";
+import { useTask } from "@/contexts/task-context";
 
 // CloudFile interface is now imported from the unified cloud picker
 
@@ -23,27 +22,34 @@ export default function UploadProviderPage() {
   const params = useParams();
   const router = useRouter();
   const provider = params.provider as string;
-  const { addTask, tasks } = useTask();
+  const { addTask } = useTask();
 
-  const { data: connectors = [], isLoading: connectorsLoading, error: connectorsError } = useGetConnectorsQuery();
+  const {
+    data: connectors = [],
+    isLoading: connectorsLoading,
+    error: connectorsError,
+  } = useGetConnectorsQuery();
   const connector = connectors.find((c) => c.type === provider);
 
-  const { data: tokenData, isLoading: tokenLoading } = useGetConnectorTokenQuery(
-    {
-      connectorType: provider,
-      connectionId: connector?.connectionId,
-      resource:
-        provider === "sharepoint" ? (connector?.baseUrl as string) : undefined,
-    },
-    {
-      enabled: !!connector && connector.status === "connected",
-    },
-  );
+  const { data: tokenData, isLoading: tokenLoading } =
+    useGetConnectorTokenQuery(
+      {
+        connectorType: provider,
+        connectionId: connector?.connectionId,
+        resource:
+          provider === "sharepoint"
+            ? (connector?.baseUrl as string)
+            : undefined,
+      },
+      {
+        enabled: !!connector && connector.status === "connected",
+      },
+    );
 
   const syncMutation = useSyncConnector();
 
   const [selectedFiles, setSelectedFiles] = useState<CloudFile[]>([]);
-  const [currentSyncTaskId, setCurrentSyncTaskId] = useState<string | null>(
+  const [_currentSyncTaskId, setCurrentSyncTaskId] = useState<string | null>(
     null,
   );
   const [ingestSettings, setIngestSettings] = useState<IngestSettings>({
@@ -65,14 +71,15 @@ export default function UploadProviderPage() {
       ? `Cloud provider "${provider}" is not available or configured.`
       : null;
 
-
   const handleFileSelected = (files: CloudFile[]) => {
     setSelectedFiles(files);
-    console.log(`Selected ${files.length} item(s) from ${provider}:`, files);
     // You can add additional handling here like triggering sync, etc.
   };
 
-  const handleSync = async (connector: any) => {
+  const handleSync = async (connector: {
+    type: string;
+    connectionId?: string;
+  }) => {
     if (!connector.connectionId || selectedFiles.length === 0) return;
 
     syncMutation.mutate(
@@ -209,7 +216,8 @@ export default function UploadProviderPage() {
               Access Token Required
             </h2>
             <p className="text-muted-foreground mb-4">
-              Unable to get access token for {connector.name}. Try reconnecting your account.
+              Unable to get access token for {connector.name}. Try reconnecting
+              your account.
             </p>
             <Button onClick={() => router.push("/settings")}>
               Reconnect {connector.name}

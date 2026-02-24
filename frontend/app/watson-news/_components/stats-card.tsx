@@ -1,12 +1,7 @@
 // ダッシュボード用の統計サマリーカードコンポーネント
 
 import type { LucideIcon } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface StatsCardProps {
@@ -62,7 +57,9 @@ export function StatsCard({
           <p
             className={cn(
               "text-xs mt-1 font-medium",
-              isPositiveTrend ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400",
+              isPositiveTrend
+                ? "text-green-600 dark:text-green-400"
+                : "text-red-600 dark:text-red-400",
             )}
           >
             {isPositiveTrend ? "↑" : "↓"} {Math.abs(trend.value)}% {trend.label}

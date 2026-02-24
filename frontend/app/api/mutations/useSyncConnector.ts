@@ -46,7 +46,7 @@ const syncConnector = async ({
       downloadUrl?: string;
       size?: number;
     }>;
-    settings?: any;
+    settings?: Record<string, unknown>;
   };
 }): Promise<SyncResponse> => {
   const response = await fetch(`/api/connectors/${connectorType}/sync`, {

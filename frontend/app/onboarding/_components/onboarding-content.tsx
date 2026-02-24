@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { StickToBottom } from "use-stick-to-bottom";
+import { useUpdateOnboardingStateMutation } from "@/app/api/mutations/useUpdateOnboardingStateMutation";
 import { getFilterById } from "@/app/api/queries/useGetFilterByIdQuery";
 import { useGetSettingsQuery } from "@/app/api/queries/useGetSettingsQuery";
-import { useUpdateOnboardingStateMutation } from "@/app/api/mutations/useUpdateOnboardingStateMutation";
 import { AssistantMessage } from "@/app/chat/_components/assistant-message";
 import Nudges from "@/app/chat/_components/nudges";
 import { UserMessage } from "@/app/chat/_components/user-message";
@@ -37,12 +37,12 @@ export function OnboardingContent({
   const updateOnboardingMutation = useUpdateOnboardingStateMutation();
   const parseFailedRef = useRef(false);
   const [responseId, setResponseId] = useState<string | null>(null);
-  
+
   // Initialize from backend settings
   const [selectedNudge, setSelectedNudge] = useState<string>(() => {
     return settings?.onboarding?.selected_nudge || "";
   });
-  
+
   const [assistantMessage, setAssistantMessage] = useState<Message | null>(
     () => {
       // Get from backend settings
@@ -91,7 +91,7 @@ export function OnboardingContent({
           timestamp: message.timestamp.toISOString(),
         },
       });
-      
+
       if (newResponseId) {
         setResponseId(newResponseId);
 
@@ -99,7 +99,8 @@ export function OnboardingContent({
         setCurrentConversationId(newResponseId);
 
         // Get filter ID from backend settings
-        const openragDocsFilterId = settings?.onboarding?.openrag_docs_filter_id;
+        const openragDocsFilterId =
+          settings?.onboarding?.openrag_docs_filter_id;
         if (openragDocsFilterId) {
           try {
             // Load the filter and set it in the context with explicit responseId
@@ -108,10 +109,12 @@ export function OnboardingContent({
             if (filter) {
               // Pass explicit newResponseId to ensure correct localStorage association
               setConversationFilter(filter, newResponseId);
-              console.log("[ONBOARDING] Saved filter association:", `conversation_filter_${newResponseId}`, "=", openragDocsFilterId);
             }
           } catch (error) {
-            console.error("Failed to associate filter with conversation:", error);
+            console.error(
+              "Failed to associate filter with conversation:",
+              error,
+            );
           }
         }
       }
@@ -132,24 +135,22 @@ export function OnboardingContent({
   const handleNudgeClick = async (nudge: string) => {
     setSelectedNudge(nudge);
     setAssistantMessage(null);
-    
+
     // Save selected nudge to backend and clear assistant message
     await updateOnboardingMutation.mutateAsync({
       selected_nudge: nudge,
       assistant_message: null,
     });
-    
+
     setTimeout(async () => {
       // Check if we have the OpenRAG docs filter ID (sample data was ingested)
       const openragDocsFilterId = settings?.onboarding?.openrag_docs_filter_id;
 
       // Load and set the OpenRAG docs filter if available
       let filterToUse = null;
-      console.log("[ONBOARDING] openragDocsFilterId:", openragDocsFilterId);
       if (openragDocsFilterId) {
         try {
           const filter = await getFilterById(openragDocsFilterId);
-          console.log("[ONBOARDING] Loaded filter:", filter);
           if (filter) {
             // Pass null to skip localStorage save - no conversation exists yet
             setConversationFilter(filter, null);
@@ -159,8 +160,6 @@ export function OnboardingContent({
           console.error("Failed to load OpenRAG docs filter:", error);
         }
       }
-
-      console.log("[ONBOARDING] Sending message with filter_id:", filterToUse?.id);
       await sendMessage({
         prompt: nudge,
         previousResponseId: responseId || undefined,

@@ -1,8 +1,8 @@
 "use client";
 
-import { EllipsisVertical, RefreshCw, AlertCircle } from "lucide-react";
+import { AlertCircle, EllipsisVertical, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useDeleteDocument } from "@/app/api/mutations/useDeleteDocument";
 import { useSyncConnector } from "@/app/api/mutations/useSyncConnector";
@@ -13,9 +13,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { DeleteConfirmationDialog } from "./delete-confirmation-dialog";
 import { Button } from "./ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface KnowledgeActionsDropdownProps {
   filename: string;
@@ -23,7 +28,11 @@ interface KnowledgeActionsDropdownProps {
 }
 
 // Cloud connector types that support sync
-const CLOUD_CONNECTOR_TYPES = new Set(["google_drive", "onedrive", "sharepoint"]);
+const CLOUD_CONNECTOR_TYPES = new Set([
+  "google_drive",
+  "onedrive",
+  "sharepoint",
+]);
 
 export const KnowledgeActionsDropdown = ({
   filename,
@@ -67,12 +76,14 @@ export const KnowledgeActionsDropdown = ({
         toast.info(result.message || `No ${connectorType} files to sync.`);
       } else if (result.task_ids && result.task_ids.length > 0) {
         toast.success(
-          `Sync started for ${connectorType}. Check task notifications for progress.`
+          `Sync started for ${connectorType}. Check task notifications for progress.`,
         );
       }
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : `Failed to sync ${connectorType}`,
+        error instanceof Error
+          ? error.message
+          : `Failed to sync ${connectorType}`,
       );
     }
   };
@@ -132,7 +143,9 @@ export const KnowledgeActionsDropdown = ({
                 {!isConnected && (
                   <TooltipContent side="right">
                     <p className="max-w-[200px] text-xs">
-                      {connectorType.charAt(0).toUpperCase() + connectorType.slice(1)} is not connected. Connect it in Settings to enable sync.
+                      {connectorType.charAt(0).toUpperCase() +
+                        connectorType.slice(1)}{" "}
+                      is not connected. Connect it in Settings to enable sync.
                     </p>
                   </TooltipContent>
                 )}

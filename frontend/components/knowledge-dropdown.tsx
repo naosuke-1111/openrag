@@ -39,8 +39,8 @@ import { Label } from "@/components/ui/label";
 import { useTask } from "@/contexts/task-context";
 import {
   duplicateCheck,
-  uploadFile as uploadFileUtil,
   uploadFiles,
+  uploadFile as uploadFileUtil,
 } from "@/lib/upload-utils";
 import { cn } from "@/lib/utils";
 
@@ -50,19 +50,25 @@ export const SUPPORTED_FILE_TYPES = {
   "image/*": [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".webp"],
   "application/pdf": [".pdf"],
   "application/msword": [".doc"],
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
+    ".docx",
+  ],
   "application/vnd.ms-powerpoint": [".ppt"],
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": [
+    ".pptx",
+  ],
   "application/vnd.ms-excel": [".xls"],
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+    ".xlsx",
+  ],
   "text/csv": [".csv"],
   "text/plain": [".txt"],
   "text/markdown": [".md"],
   "text/html": [".html", ".htm"],
   "application/rtf": [".rtf"],
   "application/vnd.oasis.opendocument.text": [".odt"],
-  "text/asciidoc": [".adoc", ".asciidoc"]
-}
+  "text/asciidoc": [".adoc", ".asciidoc"],
+};
 
 export const SUPPORTED_EXTENSIONS = Object.values(SUPPORTED_FILE_TYPES).flat();
 
@@ -84,7 +90,7 @@ export function KnowledgeDropdown() {
   const [fileUploading, setFileUploading] = useState(false);
   const [isNavigatingToCloud, setIsNavigatingToCloud] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [duplicateFilename, setDuplicateFilename] = useState<string>("");
+  const [_duplicateFilename, setDuplicateFilename] = useState<string>("");
   const [cloudConnectors, setCloudConnectors] = useState<{
     [key: string]: {
       name: string;
@@ -207,21 +213,15 @@ export function KnowledgeDropdown() {
       // File selection will close dropdown automatically
 
       try {
-        console.log("[Duplicate Check] Checking file:", file.name);
         const checkData = await duplicateCheck(file);
-        console.log("[Duplicate Check] Result:", checkData);
 
         if (checkData.exists) {
-          console.log("[Duplicate Check] Duplicate detected, showing dialog");
           setPendingFile(file);
           setDuplicateFilename(file.name);
           setShowDuplicateDialog(true);
           resetFileInput();
           return;
         }
-
-        // No duplicate, proceed with upload
-        console.log("[Duplicate Check] No duplicate, proceeding with upload");
         await uploadFile(file, false);
       } catch (error) {
         console.error("[Duplicate Check] Exception:", error);
@@ -337,9 +337,6 @@ export function KnowledgeDropdown() {
       const skippedCount = duplicateResults.filter((r) => r.isDuplicate).length;
 
       if (skippedCount > 0) {
-        console.log(
-          `[Folder Upload] Skipping ${skippedCount} duplicate file(s)`,
-        );
       }
 
       if (nonDuplicateFiles.length === 0) {
@@ -353,18 +350,11 @@ export function KnowledgeDropdown() {
         batches.push(nonDuplicateFiles.slice(i, i + uploadBatchSize));
       }
 
-      console.log(
-        `[Folder Upload] Uploading ${nonDuplicateFiles.length} file(s) in ${batches.length} batch(es)`,
-      );
-
       // Upload each batch as a single task
       for (const batch of batches) {
         try {
           const result = await uploadFiles(batch, false);
           addTask(result.taskId);
-          console.log(
-            `[Folder Upload] Batch uploaded: taskId=${result.taskId}, files=${result.fileCount}`,
-          );
         } catch (error) {
           console.error("[Folder Upload] Batch upload failed:", error);
           toast.error("Batch upload failed", {

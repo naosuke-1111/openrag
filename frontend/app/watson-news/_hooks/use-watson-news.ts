@@ -19,8 +19,7 @@ function toNewsArticle(hit: Record<string, unknown>): NewsArticle {
     id: String(hit.id ?? ""),
     title: String(hit.title ?? ""),
     url: String(hit.url ?? ""),
-    source_type:
-      (hit.source_type as NewsArticle["source_type"]) ?? "gdelt",
+    source_type: (hit.source_type as NewsArticle["source_type"]) ?? "gdelt",
     source_name: String(hit.source_name ?? hit.source_type ?? ""),
     published: String(hit.published ?? ""),
     language: (hit.language as NewsArticle["language"]) ?? "en",
@@ -118,7 +117,9 @@ export function useDashboardStats() {
       } catch (err) {
         if (!cancelled) {
           setError(
-            err instanceof Error ? err : new Error("統計データの取得に失敗しました"),
+            err instanceof Error
+              ? err
+              : new Error("統計データの取得に失敗しました"),
           );
         }
       } finally {
@@ -271,9 +272,7 @@ export function useBoxDocumentDetail(fileId: string) {
 
     async function fetchDocument() {
       try {
-        const response = await fetch(
-          `/api/watson-news/box/files/${fileId}`,
-        );
+        const response = await fetch(`/api/watson-news/box/files/${fileId}`);
 
         if (response.status === 404) {
           throw new Error("Box文書が見つかりませんでした");

@@ -3,28 +3,17 @@
 // Article Detail 画面
 // ニュース記事の詳細情報（本文・NLP解析結果・エンティティ・センチメントなど）を表示する
 
-import {
-  ArrowLeft,
-  Calendar,
-  ExternalLink,
-  Globe,
-  Tag,
-} from "lucide-react";
+import { ArrowLeft, Calendar, ExternalLink, Globe, Tag } from "lucide-react";
 import Link from "next/link";
 import { use } from "react";
 import { ProtectedRoute } from "@/components/protected-route";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { SentimentBadge } from "../_components/sentiment-badge";
 import { useArticleDetail } from "../_hooks/use-watson-news";
 import { SOURCE_TYPE_CONFIG } from "../_types/types";
-import { SentimentBadge } from "../_components/sentiment-badge";
-import { cn } from "@/lib/utils";
 
 interface ArticleDetailPageProps {
   params: Promise<{ id: string }>;

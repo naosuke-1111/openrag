@@ -24,8 +24,8 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDashboardStats } from "./_hooks/use-watson-news";
 import { StatsCard } from "./_components/stats-card";
+import { useDashboardStats } from "./_hooks/use-watson-news";
 
 export default function WatsonNewsDashboardPage() {
   const { stats, isLoading } = useDashboardStats();
@@ -65,7 +65,6 @@ export default function WatsonNewsDashboardPage() {
               /* ローディングスケルトン */
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[...Array(4)].map((_, i) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: スケルトン用
                   <Skeleton key={i} className="h-28 rounded-xl" />
                 ))}
               </div>
@@ -114,7 +113,8 @@ export default function WatsonNewsDashboardPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">センチメント分布</CardTitle>
                 <CardDescription className="text-xs">
-                  全記事のセンチメント内訳（Phase 2 でインタラクティブグラフに置き換え予定）
+                  全記事のセンチメント内訳（Phase 2
+                  でインタラクティブグラフに置き換え予定）
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -168,7 +168,6 @@ export default function WatsonNewsDashboardPage() {
                 {isLoading ? (
                   <div className="space-y-2">
                     {[...Array(5)].map((_, i) => (
-                      // biome-ignore lint/suspicious/noArrayIndexKey: スケルトン用
                       <Skeleton key={i} className="h-6 rounded" />
                     ))}
                   </div>
@@ -219,7 +218,6 @@ export default function WatsonNewsDashboardPage() {
                 {isLoading ? (
                   <div className="space-y-2">
                     {[...Array(5)].map((_, i) => (
-                      // biome-ignore lint/suspicious/noArrayIndexKey: スケルトン用
                       <Skeleton key={i} className="h-6 rounded" />
                     ))}
                   </div>

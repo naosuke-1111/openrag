@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { SOURCE_TYPE_CONFIG, type NewsArticle } from "../_types/types";
+import { type NewsArticle, SOURCE_TYPE_CONFIG } from "../_types/types";
 import { SentimentBadge } from "./sentiment-badge";
 
 interface ArticleCardProps {
@@ -25,11 +25,14 @@ export function ArticleCard({ article, score, className }: ArticleCardProps) {
   const sourceConfig = SOURCE_TYPE_CONFIG[article.source_type];
 
   // 公開日時を日本語ロケールでフォーマット
-  const publishedDate = new Date(article.published).toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  const publishedDate = new Date(article.published).toLocaleDateString(
+    "ja-JP",
+    {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    },
+  );
 
   return (
     <Card

@@ -80,7 +80,7 @@ declare global {
         };
       };
     };
-    OneDrive?: any;
+    OneDrive?: unknown;
   }
 }
 

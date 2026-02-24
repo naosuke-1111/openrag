@@ -1,7 +1,6 @@
 "use client";
 
 // Watson News API との通信を担うカスタムフック群
-// バックエンド (Week 7-8) 実装後、MOCK_DATA を実際の API コールに置き換える
 
 import { useCallback, useEffect, useState } from "react";
 import type {
@@ -13,185 +12,47 @@ import type {
 } from "../_types/types";
 
 // ----------------------------------------
-// モックデータ: ダッシュボード統計
+// 型変換ヘルパー
 // ----------------------------------------
-const MOCK_DASHBOARD_STATS: DashboardStats = {
-  total_articles: 1284,
-  total_box_documents: 47,
-  articles_last_24h: 38,
-  positive_ratio: 0.42,
-  negative_ratio: 0.18,
-  neutral_ratio: 0.40,
-  top_topics: [
-    { topic: "AI / Watson", count: 312 },
-    { topic: "クラウド", count: 245 },
-    { topic: "セキュリティ", count: 198 },
-    { topic: "量子コンピュータ", count: 134 },
-    { topic: "半導体", count: 98 },
-  ],
-  top_entities: [
-    { name: "IBM", type: "ORG", count: 956 },
-    { name: "Arvind Krishna", type: "PERSON", count: 143 },
-    { name: "watsonx", type: "PRODUCT", count: 287 },
-    { name: "Red Hat", type: "ORG", count: 201 },
-    { name: "HashiCorp", type: "ORG", count: 89 },
-  ],
-};
+function toNewsArticle(hit: Record<string, unknown>): NewsArticle {
+  return {
+    id: String(hit.id ?? ""),
+    title: String(hit.title ?? ""),
+    url: String(hit.url ?? ""),
+    source_type:
+      (hit.source_type as NewsArticle["source_type"]) ?? "gdelt",
+    source_name: String(hit.source_name ?? hit.source_type ?? ""),
+    published: String(hit.published ?? ""),
+    language: (hit.language as NewsArticle["language"]) ?? "en",
+    summary: String(hit.summary ?? ""),
+    clean_body: hit.clean_body ? String(hit.clean_body) : undefined,
+    sentiment_label:
+      (hit.sentiment_label as NewsArticle["sentiment_label"]) ?? "neutral",
+    sentiment_score: Number(hit.sentiment_score ?? 0),
+    entities: Array.isArray(hit.entities)
+      ? (hit.entities as NewsArticle["entities"])
+      : [],
+    topic: String(hit.topic ?? ""),
+  };
+}
 
-// ----------------------------------------
-// モックデータ: ニュース記事一覧
-// ----------------------------------------
-const MOCK_ARTICLES: NewsArticle[] = [
-  {
-    id: "article-001",
-    title: "IBM、watsonx.ai の新モデルを発表 — Granite 3.0 正式リリース",
-    url: "https://newsroom.ibm.com/announcements/2026/granite-3",
-    source_type: "ibm_crawl",
-    source_name: "IBM Newsroom",
-    published: "2026-02-22T09:00:00Z",
-    language: "en",
-    summary:
-      "IBMはwatsonx.aiプラットフォーム向けの新世代AIモデル Granite 3.0 を正式にリリースした。マルチリンガル対応と推論性能が大幅に強化されており、エンタープライズ向けのユースケースに最適化されている。",
-    sentiment_label: "positive",
-    sentiment_score: 0.82,
-    entities: [
-      { name: "IBM", type: "ORG" },
-      { name: "watsonx.ai", type: "PRODUCT" },
-      { name: "Granite 3.0", type: "PRODUCT" },
-    ],
-    topic: "AI / Watson",
-  },
-  {
-    id: "article-002",
-    title: "IBM Research が量子コンピュータの新エラー訂正技術を発表",
-    url: "https://research.ibm.com/blog/quantum-error-correction-2026",
-    source_type: "ibm_crawl",
-    source_name: "IBM Research Blog",
-    published: "2026-02-21T14:30:00Z",
-    language: "en",
-    summary:
-      "IBM Research は量子コンピューティングにおけるエラー訂正の新手法を発表した。実用的な量子優位性の実現に向けた重要なマイルストーンとして業界から注目を集めている。",
-    sentiment_label: "positive",
-    sentiment_score: 0.75,
-    entities: [
-      { name: "IBM Research", type: "ORG" },
-      { name: "IBM Quantum", type: "PRODUCT" },
-    ],
-    topic: "量子コンピュータ",
-  },
-  {
-    id: "article-003",
-    title: "IBM、AI規制強化に伴うコンプライアンスコスト増大の懸念を表明",
-    url: "https://www.ibm.com/policy/ai-regulation",
-    source_type: "gdelt",
-    source_name: "GDELT News",
-    published: "2026-02-20T11:00:00Z",
-    language: "en",
-    summary:
-      "EU・米国のAI規制強化に対し、IBMがコンプライアンス対応コストの増大に懸念を示した。規制の整合性確保と企業の競争力維持のバランスについて議論が続いている。",
-    sentiment_label: "negative",
-    sentiment_score: -0.45,
-    entities: [
-      { name: "IBM", type: "ORG" },
-      { name: "EU", type: "ORG" },
-    ],
-    topic: "セキュリティ",
-  },
-  {
-    id: "article-004",
-    title: "IBMクラウド、ハイブリッドクラウド戦略の強化を発表",
-    url: "https://www.ibm.com/cloud/hybrid",
-    source_type: "ibm_crawl",
-    source_name: "IBM Announcements",
-    published: "2026-02-19T08:00:00Z",
-    language: "en",
-    summary:
-      "IBMはハイブリッドクラウド・AI戦略の一環として、Red Hatとの統合強化を発表した。エンタープライズ顧客向けのマルチクラウド対応ソリューションが拡充される。",
-    sentiment_label: "positive",
-    sentiment_score: 0.68,
-    entities: [
-      { name: "IBM", type: "ORG" },
-      { name: "Red Hat", type: "ORG" },
-    ],
-    topic: "クラウド",
-  },
-  {
-    id: "article-005",
-    title: "IBM Japan、watsonx導入事例 — 大手製造業でのAI活用事例を公開",
-    url: "https://www.ibm.com/jp-ja/think/insights/manufacturing-ai",
-    source_type: "ibm_crawl",
-    source_name: "IBM Think Insights JP",
-    published: "2026-02-18T10:00:00Z",
-    language: "ja",
-    summary:
-      "IBM Japanが大手製造業でのwatsonx活用事例を公開。生産ラインの異常検知にAIを適用することで、ダウンタイムを30%削減することに成功した事例が紹介された。",
-    sentiment_label: "positive",
-    sentiment_score: 0.77,
-    entities: [
-      { name: "IBM Japan", type: "ORG" },
-      { name: "watsonx", type: "PRODUCT" },
-    ],
-    topic: "AI / Watson",
-  },
-];
-
-// ----------------------------------------
-// モックデータ: Box文書
-// ----------------------------------------
-const MOCK_BOX_DOCUMENTS: BoxDocument[] = [
-  {
-    id: "box-001",
-    box_file_id: "f_12345",
-    filename: "IBM_AI_Strategy_2026.pdf",
-    mimetype: "application/pdf",
-    owner: "strategy@ibm.com",
-    updated_at: "2026-02-15T09:00:00Z",
-    topic: "AI / Watson",
-    entities: [
-      { name: "IBM", type: "ORG" },
-      { name: "watsonx", type: "PRODUCT" },
-    ],
-    chunks: [
-      {
-        chunk_index: 0,
-        clean_text:
-          "IBMのAI戦略2026では、watsonxプラットフォームを中心としたエンタープライズAIの民主化を推進します。",
-        entities: [{ name: "IBM", type: "ORG" }],
-        topic: "AI / Watson",
-      },
-      {
-        chunk_index: 1,
-        clean_text:
-          "主要な注力領域は、生成AI・自動化・セキュリティの3つであり、2026年末までに売上の30%をAI関連製品で構成することを目標とします。",
-        entities: [{ name: "watsonx", type: "PRODUCT" }],
-        topic: "AI / Watson",
-      },
-    ],
-  },
-  {
-    id: "box-002",
-    box_file_id: "f_23456",
-    filename: "Quarterly_Review_Q4_2025.pptx",
-    mimetype:
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    owner: "finance@ibm.com",
-    updated_at: "2026-01-20T14:00:00Z",
-    topic: "クラウド",
-    entities: [
-      { name: "IBM", type: "ORG" },
-      { name: "Red Hat", type: "ORG" },
-    ],
-    chunks: [
-      {
-        chunk_index: 0,
-        clean_text:
-          "Q4 2025の売上は前年同期比8%増。クラウド・AIセグメントが全体成長を牽引した。",
-        entities: [{ name: "IBM", type: "ORG" }],
-        topic: "クラウド",
-      },
-    ],
-  },
-];
+function toBoxDocument(raw: Record<string, unknown>): BoxDocument {
+  return {
+    id: String(raw.id ?? ""),
+    box_file_id: String(raw.box_file_id ?? raw.id ?? ""),
+    filename: String(raw.filename ?? ""),
+    mimetype: String(raw.mimetype ?? ""),
+    owner: String(raw.owner ?? ""),
+    updated_at: String(raw.updated_at ?? ""),
+    topic: String(raw.topic ?? ""),
+    entities: Array.isArray(raw.entities)
+      ? (raw.entities as BoxDocument["entities"])
+      : [],
+    chunks: Array.isArray(raw.chunks)
+      ? (raw.chunks as BoxDocument["chunks"])
+      : [],
+  };
+}
 
 // ----------------------------------------
 // ダッシュボード統計取得フック
@@ -202,12 +63,73 @@ export function useDashboardStats() {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // バックエンド実装後は /api/watson-news/stats に差し替える
-    const timer = setTimeout(() => {
-      setStats(MOCK_DASHBOARD_STATS);
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+
+    async function fetchStats() {
+      try {
+        const [articlesRes, boxRes, trendsRes] = await Promise.all([
+          fetch("/api/watson-news/articles?size=0"),
+          fetch("/api/watson-news/box/files?size=0"),
+          fetch("/api/watson-news/trends"),
+        ]);
+
+        if (!articlesRes.ok || !boxRes.ok || !trendsRes.ok) {
+          throw new Error("統計データの取得に失敗しました");
+        }
+
+        const [articlesData, boxData, trendsData] = await Promise.all([
+          articlesRes.json(),
+          boxRes.json(),
+          trendsRes.json(),
+        ]);
+
+        if (cancelled) return;
+
+        // センチメント集計
+        const sentimentCounts = { positive: 0, negative: 0, neutral: 0 };
+        const articles: Record<string, unknown>[] = Array.isArray(
+          articlesData.articles,
+        )
+          ? articlesData.articles
+          : [];
+        for (const a of articles) {
+          const label = String(a.sentiment_label ?? "neutral") as
+            | "positive"
+            | "negative"
+            | "neutral";
+          if (label in sentimentCounts) sentimentCounts[label]++;
+        }
+        const total = articles.length || 1;
+
+        setStats({
+          total_articles: articlesData.total ?? articles.length,
+          total_box_documents: boxData.total ?? 0,
+          articles_last_24h: articlesData.articles_last_24h ?? 0,
+          positive_ratio: sentimentCounts.positive / total,
+          negative_ratio: sentimentCounts.negative / total,
+          neutral_ratio: sentimentCounts.neutral / total,
+          top_topics: Array.isArray(trendsData.top_topics)
+            ? trendsData.top_topics
+            : [],
+          top_entities: Array.isArray(trendsData.top_entities)
+            ? trendsData.top_entities
+            : [],
+        });
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err : new Error("統計データの取得に失敗しました"),
+          );
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    fetchStats();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { stats, isLoading, error };
@@ -226,78 +148,56 @@ export function useWatsonNewsSearch() {
     setError(null);
 
     try {
-      // バックエンド実装後は POST /api/watson-news/search に差し替える
-      await new Promise((r) => setTimeout(r, 800));
+      const response = await fetch("/api/watson-news/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: filters.query,
+          source_types:
+            filters.source_types.length > 0 ? filters.source_types : undefined,
+          languages:
+            filters.languages.length > 0 ? filters.languages : undefined,
+          sentiment:
+            filters.sentiment && filters.sentiment !== "all"
+              ? filters.sentiment
+              : undefined,
+          date_from: filters.date_from ?? undefined,
+          date_to: filters.date_to ?? undefined,
+          size: 50,
+        }),
+      });
 
-      // クエリとフィルターでモックデータを絞り込む
-      const query = filters.query.toLowerCase();
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(
+          (err as { error?: string }).error ?? "検索に失敗しました",
+        );
+      }
 
-      const articleResults: SearchResultItem[] = MOCK_ARTICLES.filter(
-        (article) => {
-          // ソース種別フィルター
-          if (
-            filters.source_types.length > 0 &&
-            !filters.source_types.includes(article.source_type)
-          ) {
-            return false;
-          }
-          // 言語フィルター
-          if (
-            filters.languages.length > 0 &&
-            !filters.languages.includes(article.language)
-          ) {
-            return false;
-          }
-          // センチメントフィルター
-          if (
-            filters.sentiment &&
-            filters.sentiment !== "all" &&
-            article.sentiment_label !== filters.sentiment
-          ) {
-            return false;
-          }
-          // キーワード検索（タイトル・サマリー）
-          if (
-            query &&
-            !article.title.toLowerCase().includes(query) &&
-            !article.summary.toLowerCase().includes(query)
-          ) {
-            return false;
-          }
-          return true;
-        },
-      ).map((article) => ({
-        type: "news" as const,
-        score: 0.9,
-        article,
-      }));
+      const data = await response.json();
 
-      const boxResults: SearchResultItem[] = MOCK_BOX_DOCUMENTS.filter(
-        (doc) => {
-          // Boxソースが選択されているかチェック
-          if (
-            filters.source_types.length > 0 &&
-            !filters.source_types.includes("box")
-          ) {
-            return false;
-          }
-          // キーワード検索（ファイル名・チャンクテキスト）
-          if (
-            query &&
-            !doc.filename.toLowerCase().includes(query) &&
-            !doc.chunks.some((c) => c.clean_text.toLowerCase().includes(query))
-          ) {
-            return false;
-          }
-          return true;
-        },
-      ).map((doc) => ({
-        type: "box" as const,
-        score: 0.75,
-        box_document: doc,
-      }));
+      const mapped: SearchResultItem[] = (
+        (data.results ?? []) as Record<string, unknown>[]
+      ).map((item) => {
+        if (item.type === "box") {
+          return {
+            type: "box" as const,
+            score: Number(item.score ?? 0),
+            box_document: toBoxDocument(
+              (item.box_document as Record<string, unknown>) ?? {},
+            ),
+          };
+        }
+        return {
+          type: "news" as const,
+          score: Number(item.score ?? 0),
+          article: toNewsArticle(
+            (item.article as Record<string, unknown>) ?? {},
+          ),
+        };
+      });
 
-      setResults([...articleResults, ...boxResults]);
+      setResults(mapped);
     } catch (err) {
       setError(err instanceof Error ? err : new Error("検索に失敗しました"));
     } finally {
@@ -319,18 +219,38 @@ export function useArticleDetail(id: string) {
   useEffect(() => {
     if (!id) return;
 
-    // バックエンド実装後は GET /api/watson-news/articles/:id に差し替える
-    const timer = setTimeout(() => {
-      const found = MOCK_ARTICLES.find((a) => a.id === id) ?? null;
-      if (found) {
-        setArticle(found);
-      } else {
-        setError(new Error("記事が見つかりませんでした"));
-      }
-      setIsLoading(false);
-    }, 400);
+    let cancelled = false;
 
-    return () => clearTimeout(timer);
+    async function fetchArticle() {
+      try {
+        const response = await fetch(`/api/watson-news/articles/${id}`);
+
+        if (response.status === 404) {
+          throw new Error("記事が見つかりませんでした");
+        }
+        if (!response.ok) {
+          throw new Error("記事の取得に失敗しました");
+        }
+
+        const data = await response.json();
+        if (!cancelled) {
+          setArticle(toNewsArticle(data as Record<string, unknown>));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err : new Error("記事の取得に失敗しました"),
+          );
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    fetchArticle();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   return { article, isLoading, error };
@@ -347,19 +267,42 @@ export function useBoxDocumentDetail(fileId: string) {
   useEffect(() => {
     if (!fileId) return;
 
-    // バックエンド実装後は GET /api/watson-news/box/files/:file_id に差し替える
-    const timer = setTimeout(() => {
-      const found =
-        MOCK_BOX_DOCUMENTS.find((d) => d.box_file_id === fileId) ?? null;
-      if (found) {
-        setDocument(found);
-      } else {
-        setError(new Error("Box文書が見つかりませんでした"));
-      }
-      setIsLoading(false);
-    }, 400);
+    let cancelled = false;
 
-    return () => clearTimeout(timer);
+    async function fetchDocument() {
+      try {
+        const response = await fetch(
+          `/api/watson-news/box/files/${fileId}`,
+        );
+
+        if (response.status === 404) {
+          throw new Error("Box文書が見つかりませんでした");
+        }
+        if (!response.ok) {
+          throw new Error("Box文書の取得に失敗しました");
+        }
+
+        const data = await response.json();
+        if (!cancelled) {
+          setDocument(toBoxDocument(data as Record<string, unknown>));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err
+              : new Error("Box文書の取得に失敗しました"),
+          );
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    fetchDocument();
+    return () => {
+      cancelled = true;
+    };
   }, [fileId]);
 
   return { document, isLoading, error };

@@ -8,6 +8,15 @@ import {
   GooglePickerDocument,
 } from "./types";
 
+// Add type definition for window.OneDrive
+declare global {
+  interface Window {
+    OneDrive: {
+      open: (config: any) => void;
+    };
+  }
+}
+
 interface OneDriveItem {
   id: string;
   name: string;
@@ -205,7 +214,7 @@ export class OneDriveHandler {
         ? this.baseUrl
         : "api.onedrive.com";
 
-    window.OneDrive.open({
+    (window.OneDrive as any).open({
       clientId: this.clientId,
       action: "query",
       multiSelect: true,

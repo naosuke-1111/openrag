@@ -69,38 +69,38 @@ export const MarkdownRenderer = ({
         rehypePlugins={[rehypeMathjax, rehypeRaw]}
         urlTransform={(url) => url}
         components={{
-          p({ node, ...props }) {
+          p({ node: _node, ...props }) {
             return (
               <p className="w-fit max-w-full first:mt-0 last:mb-0 my-2">
                 {props.children}
               </p>
             );
           },
-          ol({ node, ...props }) {
+          ol({ node: _node, ...props }) {
             return <ol className="max-w-full">{props.children}</ol>;
           },
-          strong({ node, ...props }) {
+          strong({ node: _node, ...props }) {
             return <strong className="font-bold">{props.children}</strong>;
           },
-          h1({ node, ...props }) {
+          h1({ node: _node, ...props }) {
             return <h1 className="mb-6 mt-4">{props.children}</h1>;
           },
-          h2({ node, ...props }) {
+          h2({ node: _node, ...props }) {
             return <h2 className="mb-4 mt-4">{props.children}</h2>;
           },
-          h3({ node, ...props }) {
+          h3({ node: _node, ...props }) {
             return <h3 className="mb-2 mt-4">{props.children}</h3>;
           },
           hr() {
             return <hr className="w-full mt-4 mb-8" />;
           },
-          ul({ node, ...props }) {
+          ul({ node: _node, ...props }) {
             return <ul className="max-w-full mb-2">{props.children}</ul>;
           },
-          pre({ node, ...props }) {
+          pre({ node: _node, ...props }) {
             return <>{props.children}</>;
           },
-          table: ({ node, ...props }) => {
+          table: ({ node: _node, ...props }) => {
             return (
               <div className="max-w-full overflow-hidden rounded-md border bg-muted">
                 <div className="max-h-[600px] w-full overflow-auto p-4">
@@ -109,7 +109,7 @@ export const MarkdownRenderer = ({
               </div>
             );
           },
-          a({ node, ...props }) {
+          a({ node: _node, ...props }) {
             return (
               <a {...props} target="_blank" rel="noopener noreferrer">
                 {props.children}

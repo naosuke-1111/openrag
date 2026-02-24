@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Check, Copy, Loader2, Search, X } from "lucide-react";
+import { ArrowLeft, Check, Copy, Loader2, Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 // import { Label } from "@/components/ui/label";

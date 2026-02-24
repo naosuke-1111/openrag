@@ -293,7 +293,7 @@ export class OneDriveV8Handler {
     }
   }
 
-  private handleAuthenticate(id: string, command: AuthenticateCommand): void {
+  private handleAuthenticate(id: string, _command: AuthenticateCommand): void {
     // For now, we use the same token for all requests
     // The token should be a Microsoft Graph token with Files.Read scope
     try {

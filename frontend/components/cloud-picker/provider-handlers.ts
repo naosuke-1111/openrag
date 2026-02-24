@@ -8,7 +8,6 @@ import {
   type GooglePickerDocument,
   type OneDriveError,
   type OneDriveItem,
-  type OneDrivePickerConfig,
   type OneDriveResponse,
 } from "./types";
 

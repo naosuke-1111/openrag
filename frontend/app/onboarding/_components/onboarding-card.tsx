@@ -312,7 +312,7 @@ const OnboardingCard = ({
 
   // Mutations
   const onboardingMutation = useOnboardingMutation({
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       // Update provider health cache to healthy since backend just validated
       const provider =
         (isEmbedding ? settings.embedding_provider : settings.llm_provider) ||

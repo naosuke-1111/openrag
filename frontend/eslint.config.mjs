@@ -1,4 +1,8 @@
-import { FlatCompat } from "@eslint/eslintrc";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const { FlatCompat } = require("@eslint/eslintrc");
+
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -10,10 +14,26 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  {
+    ignores: [
+      ".next/**",
+      "out/**",
+      "node_modules/**",
+      "*.tsbuildinfo",
+      ".env*",
+    ],
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {
-      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
       "@typescript-eslint/no-explicit-any": "off",
       "react-hooks/exhaustive-deps": "off",
     },

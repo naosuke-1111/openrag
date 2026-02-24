@@ -45,6 +45,13 @@ async function proxyRequest(request: NextRequest, params: { path: string[] }) {
     backendUrl = `https://${backendHost}:8000/${path}${searchParams ? `?${searchParams}` : ""}`;
   }
 
+  // Debug logging
+  console.log("[Proxy Debug]", {
+    backendHost,
+    backendUrl,
+    env_OPENRAG_BACKEND_HOST: process.env.OPENRAG_BACKEND_HOST,
+  });
+
   try {
     let body: string | ArrayBuffer | undefined = undefined;
     let willSendBody = false;

@@ -2,7 +2,6 @@
 
 import {
   EllipsisVertical,
-  FileText,
   Library,
   MessageSquare,
   Newspaper,

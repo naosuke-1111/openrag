@@ -3,7 +3,7 @@
 import { Loader2, PlugZap, Plus, RefreshCcw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { useConnectConnectorMutation } from "@/app/api/mutations/useConnectConnectorMutation";
 import { useDisconnectConnectorMutation } from "@/app/api/mutations/useDisconnectConnectorMutation";
 import {
